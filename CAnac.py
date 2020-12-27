@@ -555,7 +555,7 @@ def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False, is_reorder=Fals
         if DirA is not None:
             print ("Starting TDolap Calculations")
             parallel_tdolap_calc(DirA, DirB, checking_dict, nproc, is_alle, bmin, bmax, omin, omax, ikpt, ispin, icor)
-            DirA,DirB,completed_flag = task_checking(Dirs, is_alle)
+            DirA,DirB,completed_flag = task_checking(runDirs, is_alle)
     
         if completed_flag: 
             print ("Starting CA-NAC")
@@ -563,7 +563,7 @@ def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False, is_reorder=Fals
             print ("CA-NAC Calculations is done")
             if is_combine:
                 print ("Generating Standard Input for ", iformat)
-                combine(Dirs,bmin,bmax,ibmin,ibmax,potim,is_alle,is_reorder,is_real,iformat)
+                combine(runDirs,bmin,bmax,ibmin,ibmax,potim,is_alle,is_reorder,is_real,iformat)
                 if is_reorder:
                     reorder_verification(runDirs,is_alle)
 
@@ -575,16 +575,16 @@ def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False, is_reorder=Fals
         if skip_NAC_calc:
             if is_combine:
                 print ("Generating Standard Input for ", iformat)
-                combine(Dirs,bmin,bmax,ibmin,ibmax,potim,is_alle,is_reorder,is_real,iformat)
+                combine(runDirs,bmin,bmax,ibmin,ibmax,potim,is_alle,is_reorder,is_real,iformat)
                 if is_reorder:
                     reorder_verification(runDirs,is_alle)
         else:
             print ("Starting CA-NAC")
-            parallel_nac_calc(Dirs, nproc, is_gamma, is_reorder, is_alle,  bmin, bmax, omin, omax, ikpt, ispin)
+            parallel_nac_calc(runDirs, nproc, is_gamma, is_reorder, is_alle,  bmin, bmax, omin, omax, ikpt, ispin)
             print ("CA-NAC Calculations is done")
             if is_combine:
                 print ("Generating Standard Input for ", iformat)
-                combine(Dirs,bmin,bmax,ibmin,ibmax,potim,is_alle,is_reorder,is_real,iformat)
+                combine(runDirs,bmin,bmax,ibmin,ibmax,potim,is_alle,is_reorder,is_real,iformat)
                 if is_reorder:
                     reorder_verification(runDirs,is_alle)
         
