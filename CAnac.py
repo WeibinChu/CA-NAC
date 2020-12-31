@@ -206,7 +206,7 @@ def phase_from_tdolap(td_olap,is_gamma):
     cc2 = cor2/abs(cor2)
 
     if is_gamma:
-        for ii in td_olap.shape[0]:
+        for ii in range(td_olap.shape[0]):
             cc2[ii]= 1.0 if cor2[ii].real>0 else -1.0
 
     cc1=np.ones_like(cc2) 
@@ -264,7 +264,7 @@ def nac_from_tdolap(dirA, is_reorder=False, is_alle=False, is_gamma=False):
 #        print ('2. Elapsed Time: %.4f [s] in reordering' % (t2 - t1))
 #        t1 = t2    
     else:
-        cc1,cc2 = phase_from_tdolap(td_olap)
+        cc1,cc2 = phase_from_tdolap(td_olap,is_gamma)
         
     pij= td_olap_reorded  if is_reorder else td_olap
     pji=np.conj(np.transpose(pij))
