@@ -617,7 +617,7 @@ if __name__ == '__main__':
     is_gamma_version  = False  # Which VASP version is used!!  vasp_std False  vasp_gam True
     is_reorder= True    # If turn on State Reordering   True or False
     is_alle   = True    # If use All-electron wavefunction(require NORMALCAR) True or False
-    is_real   = False   # If rotate wavefunction to ensure NAC is real value. True or False
+    is_real   = True   # If rotate wavefunction to ensure NAC is real value. True or False
     
     ikpt    = 1         #k-point index, starting from 1 to NKPTS
     ispin   = 1         #spin index, 1 or 2
