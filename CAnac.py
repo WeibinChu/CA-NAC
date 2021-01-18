@@ -265,6 +265,8 @@ def nac_from_tdolap(dirA, is_reorder=False, is_alle=False, is_gamma=False):
 #        t1 = t2    
     else:
         cc1,cc2 = phase_from_tdolap(td_olap,is_gamma)
+        perm1 = None
+        perm2 = None
         
     pij= td_olap_reorded  if is_reorder else td_olap
     pji=np.conj(np.transpose(pij))
@@ -452,7 +454,7 @@ def parallel_tdolap_calc(dirA, dirB, checking_dict, nproc=None, is_alle=False,
 
 def parallel_nac_calc(runDirs, nproc=None, is_gamma=False, is_reorder=False, is_alle=False, 
                       bmin=None, bmax=None,omin=None, omax=None,
-                      ikpt=1, ispin=1, dt=1.0):
+                      ikpt=1, ispin=1, icor=1):
     '''
     Parallel calculation of NAC using python multiprocessing package.
     '''
@@ -559,7 +561,7 @@ def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False, is_reorder=Fals
     
         if completed_flag: 
             print ("Starting CA-NAC")
-            parallel_nac_calc(runDirs, nproc, is_gamma, is_reorder, is_alle,  bmin, bmax, omin, omax, ikpt, ispin)
+            parallel_nac_calc(runDirs, nproc, is_gamma, is_reorder, is_alle,  bmin, bmax, omin, omax, ikpt, ispin, icor)
             print ("CA-NAC Calculations is done")
             if is_combine:
                 print ("Generating Standard Input for ", iformat)
@@ -580,7 +582,7 @@ def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False, is_reorder=Fals
                     reorder_verification(runDirs,is_alle)
         else:
             print ("Starting CA-NAC")
-            parallel_nac_calc(runDirs, nproc, is_gamma, is_reorder, is_alle,  bmin, bmax, omin, omax, ikpt, ispin)
+            parallel_nac_calc(runDirs, nproc, is_gamma, is_reorder, is_alle,  bmin, bmax, omin, omax, ikpt, ispin, icor)
             print ("CA-NAC Calculations is done")
             if is_combine:
                 print ("Generating Standard Input for ", iformat)
