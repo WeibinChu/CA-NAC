@@ -161,14 +161,16 @@ class PawProj_info(object):
         self.rotate_idx = r_idx
         print ('1. Elapsed Time: %.4f [s] in Qij Construction' % (t1 - t0))
         
-def ae_aug_olap_martrix(bmin,bmax,cprojs1,cprojs2,proj_info):
+def ae_aug_olap_martrix(bmin,bmax,cprojs1,cprojs2,proj_info,nkpts,nbands,ikpt=1,ispin=1):
     
      nbasis=bmax-bmin+1
      aug_olap_matrix=np.zeros((nbasis,nbasis),dtype=np.complex)
      
-     
-     cproj1=cprojs1[bmin-1:bmax]
-     cproj2=cprojs2[bmin-1:bmax] 
+     index_min=bmin - 1 + nbands * (ikpt - 1) + nbands * nkpts * (ispin - 1)
+     index_max=bmax     + nbands * (ikpt - 1) + nbands * nkpts * (ispin - 1)
+
+     cproj1=cprojs1[index_min:index_max]
+     cproj2=cprojs2[index_min:index_max] 
      ctmp=np.zeros_like(cproj2)
      
      tmp=np.dot(cproj1.conj()*proj_info.difq_ii,cproj2.transpose())
@@ -184,19 +186,24 @@ def ae_aug_olap_martrix(bmin,bmax,cprojs1,cprojs2,proj_info):
 def test(bmin=5,bmax=40,dir0='./'):
 
     nbasis=bmax-bmin+1
-    ikpt=1
+    ikpt= 2
+    ispin=1
     print (dir0)
     proj=PawProj_info(dir0)
     cprojs1=read_cproj_NormalCar(dir0+'NormalCAR')
+    print('cprojs1.shape',cprojs1.shape)
     cprojs2=read_cproj_NormalCar(dir0+'NormalCAR')
     
     wfc=vaspwfc(dir0+'WAVECAR')
-    cptwf = wfc.readBandCoeff(iband=bmax, ikpt=ikpt)
+
+    nkpts= wfc._nkpts
+    nbands= wfc._nbands
+    cptwf = wfc.readBandCoeff(iband=bmax, ikpt=ikpt, ispin=ispin)
     
     wfc_coef = np.zeros([nbasis] + list(cptwf.shape),dtype=np.complex)
     td_olap = np.zeros((nbasis,nbasis),dtype=np.complex)
     
-    aug_olap=ae_aug_olap_martrix(bmin,bmax,cprojs1,cprojs2,proj)
+    aug_olap=ae_aug_olap_martrix(bmin,bmax,cprojs1,cprojs2,proj,nkpts,nbands,ikpt,ispin)
     
     for i in range(nbasis):
         nband=bmin+i
@@ -236,5 +243,6 @@ def realtime_checking(s_olap,dir):
         sys.exit(1)
 
     
-    
-    
+     
+if __name__ == '__main__':
+    test()

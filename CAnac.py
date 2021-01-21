@@ -327,9 +327,8 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
     nbasis = bmax - bmin + 1
     obasis = omax - omin + 1    # Basis for orthogonalization
 
-
-
-    
+    nkpts=phi_i._nkpts
+    nbanbs=phi_i._nbands
 
     ci_t   = phi_i.readBandCoeff(ispin, ikpt, omax, norm=False)
     cic_t = np.zeros([obasis] + list(ci_t.shape),dtype=np.complex)
@@ -380,7 +379,7 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
     
     if OntheflyVerify & is_alle:
         S_olap=np.dot(cio_t.conj(),np.transpose(cio_t))
-        S_aug_olap=ae_aug_olap_martrix(bmin,bmax,cprojs1,cprojs1,paw_info)
+        S_aug_olap=ae_aug_olap_martrix(bmin,bmax,cprojs1,cprojs1,paw_info,nkpts,nbands,ikpt,ispin)
         S_olap = S_olap + S_aug_olap
         
         realtime_checking(S_olap,dirA)
@@ -390,7 +389,7 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
 
 
     if is_alle:
-        td_aug_olap=ae_aug_olap_martrix(bmin,bmax,cprojs1,cprojs2,paw_info)
+        td_aug_olap=ae_aug_olap_martrix(bmin,bmax,cprojs1,cprojs2,paw_info,nkpts,nbands,ikpt,ispin)
         td_olap = td_olap + td_aug_olap
     
         t2 = time()
