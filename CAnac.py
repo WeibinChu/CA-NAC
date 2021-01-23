@@ -328,7 +328,7 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
     obasis = omax - omin + 1    # Basis for orthogonalization
 
     nkpts=phi_i._nkpts
-    nbanbs=phi_i._nbands
+    nbands=phi_i._nbands
 
     ci_t   = phi_i.readBandCoeff(ispin, ikpt, omax, norm=False)
     cic_t = np.zeros([obasis] + list(ci_t.shape),dtype=np.complex)
