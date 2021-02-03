@@ -186,7 +186,7 @@ def ae_aug_olap_martrix(bmin,bmax,cprojs1,cprojs2,proj_info,nkpts,nbands,ikpt=1,
 def test(bmin=5,bmax=40,dir0='./'):
 
     nbasis=bmax-bmin+1
-    ikpt= 2
+    ikpt=1 
     ispin=1
     print (dir0)
     proj=PawProj_info(dir0)
