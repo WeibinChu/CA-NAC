@@ -14,7 +14,7 @@ def version():
     print("CA-NAC 1.0.9_beta")
     print("Should you have any question, please contact wc_086@usc.edu")
     
-def combine(runDirs,bmin,bmax,obmin,obmax,potim,is_alle,is_reorder,is_real,iformat):
+def combine(runDirs,bmin,bmax,obmin,obmax, ispin, ikpt, potim,is_alle,is_reorder,is_real,iformat):
     
     Ev_To_Ry = 1.0 / 13.605662285137 
     Hbar_Ev = 0.6582119
@@ -30,9 +30,9 @@ def combine(runDirs,bmin,bmax,obmin,obmax,potim,is_alle,is_reorder,is_real,iform
     nac_filename='nac_'  + tag_ae + tag_rd + '.npy'
     eig_filename='eig_'  + tag_ae + tag_rd + '.npy'
     # out
-    nacre_filename='CAnac_' + str(obmin) + '_' + str(obmax)+'_' + tag_ae + tag_rd + tag_rl + '_re.txt'
-    nacim_filename='CAnac_' + str(obmin) + '_' + str(obmax)+'_' + tag_ae + tag_rd + tag_rl + '_im.txt'
-    eig_out_filename='CAeig_' + str(obmin) + '_' + str(obmax)+'_' + tag_ae + tag_rd + '.txt'
+    nacre_filename='CAnac_' + str(obmin) + '_' + str(obmax)+'_' + 'ispin' + str(ispin) + '_' + 'k' + str(ikpt) + '_' + tag_ae + tag_rd + tag_rl + '_re.txt'
+    nacim_filename='CAnac_' + str(obmin) + '_' + str(obmax)+'_' + 'ispin' + str(ispin) + '_' + 'k' + str(ikpt) + '_' + tag_ae + tag_rd + tag_rl + '_im.txt'
+    eig_out_filename='CAeig_' + str(obmin) + '_' + str(obmax)+'_' + 'ispin' + str(ispin) + '_' + 'k' + str(ikpt) + '_' + tag_ae + tag_rd + '.txt'
     
     for i,dirs in enumerate(runDirs[:-1]):
         nac[i,:]=np.load(dirs+nac_filename).reshape(nbasis**2)
@@ -62,11 +62,11 @@ def combine(runDirs,bmin,bmax,obmin,obmax,potim,is_alle,is_reorder,is_real,iform
         np.savetxt(eig_out_filename,eig[:-1,:]) 
     
 
-def task_checking(Dirs, is_alle):
+def task_checking(Dirs, obmin, obmax, ispin, ikpt, is_alle):
     
     t1 = time()
     tag_ae='ae' if is_alle else 'ps'
-    tdolap_filename='tdolap_'  + tag_ae  + '.npy'
+    tdolap_filename='tdolap_' + str(obmin) + '_' + str(obmax) + '_' + str(ispin) + '_' + str(ikpt) + '_' + tag_ae + '.npy'
     
     task_Dirs = np.zeros(len(Dirs), dtype=np.bool)
     completed_Dirs = np.zeros(len(Dirs), dtype=np.bool)
@@ -240,16 +240,16 @@ def phasecor_apply(pij,pji,cc1,cc2,is_gamma,bmin,omin,nbasis):
     return nacs
 
 
-def nac_from_tdolap(dirA, is_reorder=False, is_alle=False, is_gamma=False):  
+def nac_from_tdolap(dirA, omin, omax, ispin=1, ikpt=1, is_reorder=False, is_alle=False, is_gamma=False):  
 #    t1 = time()
     prefix = dirA
         
     tag_ae='ae' if is_alle else 'ps'
-    tdolap_filename=prefix+'tdolap_'  + tag_ae  + '.npy'
-    eig_filename=prefix+'eig_'   + tag_ae + '.npy'
+    tdolap_filename = prefix + 'tdolap_' + str(omin) + '_' + str(omax) + '_' + str(ispin) + '_' + str(ikpt) + '_' + tag_ae + '.npy' 
+    tdeig_filename = prefix + 'eig_' + str(omin) + '_' + str(omax) + '_' + str(ispin) + '_' + str(ikpt) + '.npy' 
         
         
-    EnT=np.load(eig_filename)
+    EnT=np.load(tdeig_filename)
     td_olap=np.load(tdolap_filename)
     
     if is_reorder:
@@ -439,12 +439,12 @@ def parallel_tdolap_calc(dirA, dirB, checking_dict, nproc=None, is_alle=False,
         prefix = dirA[ii]
         
         tag_ae='ae' if is_alle else 'ps'
-      
-        tdolap_filename=prefix+'tdolap_'  + tag_ae  + '.npy'
-        eig_filename=prefix+'eig_'  + tag_ae + '.npy'
+
+        tdolap_filename = prefix + 'tdolap_' + str(omin) + '_' + str(omax) + '_' + str(ispin) + '_' + str(ikpt) + '_' + tag_ae + '.npy' 
+        tdeig_filename = prefix + 'eig_' + str(omin) + '_' + str(omax) + '_' + str(ispin) + '_' + str(ikpt) + '.npy' 
         
         
-        np.save(eig_filename, et)
+        np.save(tdeig_filename, et)
         np.save(tdolap_filename, td_olap)
 
 ############################################################
@@ -468,7 +468,7 @@ def parallel_nac_calc(runDirs, nproc=None, is_gamma=False, is_reorder=False, is_
 
  
     for w1 in runDirs:
-        res = pool.apply_async(nac_from_tdolap, (w1, is_reorder, is_alle, is_gamma))
+        res = pool.apply_async(nac_from_tdolap, (w1, omin, omax, ispin, ikpt, is_reorder, is_alle, is_gamma))
         results.append(res)
 
     for ii in range(len(runDirs)-1):
@@ -551,12 +551,12 @@ def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False, is_reorder=Fals
     
     if not skip_file_verification:
         print ("Checking Files Integrity")
-        DirA,DirB,completed_flag = task_checking(runDirs, is_alle)
+        DirA,DirB,completed_flag = task_checking(runDirs, omin, omax, ispin, ikpt, is_alle)
     
         if DirA is not None:
             print ("Starting TDolap Calculations")
             parallel_tdolap_calc(DirA, DirB, checking_dict, nproc, is_alle, bmin, bmax, omin, omax, ikpt, ispin, icor)
-            DirA,DirB,completed_flag = task_checking(runDirs, is_alle)
+            DirA,DirB,completed_flag = task_checking(runDirs, omin, omax, ispin, ikpt, is_alle)
     
         if completed_flag: 
             print ("Starting CA-NAC")
@@ -564,7 +564,7 @@ def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False, is_reorder=Fals
             print ("CA-NAC Calculations is done")
             if is_combine:
                 print ("Generating Standard Input for ", iformat)
-                combine(runDirs,bmin,bmax,ibmin,ibmax,potim,is_alle,is_reorder,is_real,iformat)
+                combine(runDirs,bmin,bmax,ibmin,ibmax, ispin, ikpt, potim,is_alle,is_reorder,is_real,iformat)
                 if is_reorder:
                     reorder_verification(runDirs,is_alle)
 
@@ -576,7 +576,7 @@ def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False, is_reorder=Fals
         if skip_NAC_calc:
             if is_combine:
                 print ("Generating Standard Input for ", iformat)
-                combine(runDirs,bmin,bmax,ibmin,ibmax,potim,is_alle,is_reorder,is_real,iformat)
+                combine(runDirs,bmin,bmax,ibmin,ibmax, ispin, ikpt, potim,is_alle,is_reorder,is_real,iformat)
                 if is_reorder:
                     reorder_verification(runDirs,is_alle)
         else:
@@ -585,7 +585,7 @@ def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False, is_reorder=Fals
             print ("CA-NAC Calculations is done")
             if is_combine:
                 print ("Generating Standard Input for ", iformat)
-                combine(runDirs,bmin,bmax,ibmin,ibmax,potim,is_alle,is_reorder,is_real,iformat)
+                combine(runDirs,bmin,bmax,ibmin,ibmax, ispin, ikpt, potim,is_alle,is_reorder,is_real,iformat)
                 if is_reorder:
                     reorder_verification(runDirs,is_alle)
         
