@@ -164,7 +164,7 @@ class PawProj_info(object):
 def ae_aug_olap_martrix(bmin,bmax,cprojs1,cprojs2,proj_info,nkpts,nbands,ikpt=1,ispin=1):
     
      nbasis=bmax-bmin+1
-     aug_olap_matrix=np.zeros((nbasis,nbasis),dtype=np.complex)
+     aug_=ispinlap_matrix=np.zeros((nbasis,nbasis),dtype=np.complex)
      
      index_min=bmin - 1 + nbands * (ikpt - 1) + nbands * nkpts * (ispin - 1)
      index_max=bmax     + nbands * (ikpt - 1) + nbands * nkpts * (ispin - 1)
@@ -207,7 +207,7 @@ def test(bmin=5,bmax=40,dir0='./'):
     
     for i in range(nbasis):
         nband=bmin+i
-        wfc_coef[i] = wfc.readBandCoeff(iband=nband, ikpt=ikpt)
+        wfc_coef[i] = wfc.readBandCoeff(iband=nband, ikpt=ikpt, ispin=ispin)
     
     
     for i in range(nbasis):
