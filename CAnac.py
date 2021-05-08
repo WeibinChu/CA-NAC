@@ -11,7 +11,7 @@ from aeolap import PawProj_info,ae_aug_olap_martrix,test,realtime_checking
 from spinorb import read_cproj_NormalCar
 
 def version():
-    print("CA-NAC 1.0.9_beta")
+    print("CA-NAC 1.1.0_beta")
     print("Should you have any question, please contact wc_086@usc.edu")
     
 def combine(runDirs,bmin_s,bmax_s,obmin,obmax, ispin, ikpt, potim,is_alle,is_reorder,is_real,iformat):
@@ -25,7 +25,7 @@ def combine(runDirs,bmin_s,bmax_s,obmin,obmax, ispin, ikpt, potim,is_alle,is_reo
     
     tag_ae = 'ae' if is_alle else 'ps'
     tag_rd = 'rd' if is_reorder else ''
-    tag_rl = '_real_' if is_real else ''
+    tag_rl = '_real' if is_real else ''
     # in  
     nac_filename='nac_'  + tag_ae + tag_rd + '.npy'
     eig_filename='eig_'  + tag_ae + tag_rd + '.npy'
