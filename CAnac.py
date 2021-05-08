@@ -567,7 +567,11 @@ def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False, is_reorder=Fals
                 print ("Generating Standard Input for ", iformat)
                 combine(runDirs, bmin_s, bmax_s, ibmin, ibmax, ispin, ikpt, potim, is_alle, is_reorder, is_real,iformat)
                 if is_reorder:
+                    print("The state tracking( is_reorder = True) is turned on, please check the reordering carefully")
                     reorder_verification(runDirs, is_alle)
+                if not is_real:
+                    print("The current NACs are complex value (is_real = False), which are not supported by Hefei-NAMD and PYXAID(default integrator) ")
+                    print("Please be aware of that!!!")
 
         
         else:
@@ -588,8 +592,12 @@ def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False, is_reorder=Fals
                 print ("Generating Standard Input for ", iformat)
                 combine(runDirs, bmin_s, bmax_s, ibmin, ibmax, ispin, ikpt, potim, is_alle, is_reorder, is_real,iformat)
                 if is_reorder:
+                    print("The state tracking(is_reorder = True) is turned on, please check the reordering carefully")
                     reorder_verification(runDirs, is_alle)
-        
+                if not is_real:
+                    print("The current NACs are complex value (is_real = False), which are not supported by Hefei-NAMD and PYXAID(default integrator) ")
+                    print("Please be aware of that!!!")
+
     
 if __name__ == '__main__':
     T_start = 1 
