@@ -11,8 +11,8 @@ T_end   = 1000
 is_combine = True   #If generate standard input for HFNAMD or PYXAID
 #iformat = "PYXAID" 
 iformat = "HFNAMD"
-ibmin   = 166       
-ibmax   = 186         
+bmin    = 166       
+bmax    = 186         
 potim   = 1         # Nuclear timestep, unit: fs 
     
 # Time-overlap 
@@ -21,8 +21,8 @@ potim   = 1         # Nuclear timestep, unit: fs
 # Or when you turn on the state reordering  
 #bmin = ibmin - 10
 #bmax = ibmax + 10
-bmin    = 50      
-bmax    = 200       
+bmin_stored    = 50      
+bmax_stored    = 200       
     
 
 nproc   = 4         # Number of cores used in parallelization
@@ -35,19 +35,20 @@ is_real   = True   # If rotate wavefunction to ensure NAC is real value. True or
 ikpt    = 1         #k-point index, starting from 1 to NKPTS
 ispin   = 1         #spin index, 1 or 2
 
-   
-# For Pseudo NAC only. omin and omax are used for post-orthonormalization.
-# In principle, you should use entire basis sets in VASP
-icor=1
-omin    = bmin
-omax    = bmax
-    
 # Directories structure. Here, 0001 for 1st ionic step, 0002 for 2nd ionic step, etc.
 Dirs = ['./%04d/' % (ii + 1) for ii in range(T_start-1, T_end)] 
 
 
 
+
 # Don't change anything below if you are new to CA-NAC    
+#########################################################################   
+# For Pseudo NAC only. omin and omax are used for post-orthonormalization.
+# In principle, you should use entire basis sets in VASP
+icor    = 1
+omin    = bmin_stored
+omax    = bmax_stored
+
 skip_file_verification  = False
 skip_TDolap_calc = False 
 skip_NAC_calc = False
@@ -57,6 +58,6 @@ checking_dict={'skip_file_verification':skip_file_verification,'skip_TDolap_calc
     
     
 nac_calc(Dirs, checking_dict, nproc, is_gamma_version, is_reorder, is_alle, is_real, is_combine,
-             iformat, ibmin, ibmax,
-             bmin, bmax, omin, omax,
-             ikpt, ispin, icor, potim )
+         iformat, bmin, bmax,
+         bmin_stored, bmax_stored, omin, omax,
+         ikpt, ispin, icor, potim )
