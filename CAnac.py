@@ -100,14 +100,15 @@ def task_checking(Dirs, obmin, obmax, ispin, ikpt, is_alle):
         
     
     # check if WAVECAR has been recalculated 
-    for i, rundir in enumerate(Dirs[:-1]):
+#  This routine currently has a conflict if you removed WAVECARs after generating intermediate tdolap files.
+#    for i, rundir in enumerate(Dirs[:-1]):
         
-        if waveA_Dirs[i] & tdolap_Dirs[i] :
-            wav=os.stat(rundir+"WAVECAR")
-            tolap=os.stat(rundir+tdolap_filename) 
-            if tolap.st_mtime < wav.st_mtime:
-                    task_Dirs[i] = True
-                    completed_Dirs[i] = False
+#        if waveA_Dirs[i] & tdolap_Dirs[i] :
+#            wav=os.stat(rundir+"WAVECAR")
+#            tolap=os.stat(rundir+tdolap_filename) 
+#            if tolap.st_mtime < wav.st_mtime:
+#                    task_Dirs[i] = True
+#                    completed_Dirs[i] = False
     
     completed_flag = True if False not in completed_Dirs else False
     
