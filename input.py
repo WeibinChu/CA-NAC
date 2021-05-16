@@ -7,7 +7,7 @@ T_start = 1
 T_end   = 1000 
     
 # NAC calculations and Genration of standard input for HFNAMD or PYXAID
-# ibmin and ibmax are actual band index in VASP, and should be same with the bmin and bmax in your NAMD simulation.
+# bmin and bmax are actual band index in VASP, and should be same with the bmin and bmax in your NAMD simulation.
 is_combine = True   #If generate standard input for HFNAMD or PYXAID
 #iformat = "PYXAID" 
 iformat = "HFNAMD"
@@ -16,11 +16,11 @@ bmax    = 186
 potim   = 1         # Nuclear timestep, unit: fs 
     
 # Time-overlap 
-# bmin bmax are actual band index in VASP
+# bmin_stored bmax_stored are actual band index in VASP
 # Use a large basis sets here if you would like to remove WAVECAR to save disk usage
 # Or when you turn on the state reordering  
-#bmin = ibmin - 10
-#bmax = ibmax + 10
+#bmin_stored = bmin - 10
+#bmax_stored = bmax + 10
 bmin_stored    = 50      
 bmax_stored    = 200       
     
@@ -36,6 +36,7 @@ ikpt    = 1         #k-point index, starting from 1 to NKPTS
 ispin   = 1         #spin index, 1 or 2
 
 # Directories structure. Here, 0001 for 1st ionic step, 0002 for 2nd ionic step, etc.
+# Don't forget the forward slash at the end.
 Dirs = ['./%04d/' % (ii + 1) for ii in range(T_start-1, T_end)] 
 
 

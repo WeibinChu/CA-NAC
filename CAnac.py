@@ -633,6 +633,7 @@ if __name__ == '__main__':
     ispin   = 1         #spin index, 1 or 2
 
 # Directories structure. Here, 0001 for 1st ionic step, 0002 for 2nd ionic step, etc.
+# Don't forget the forward slash at the end.
     Dirs = ['./%04d/' % (ii + 1) for ii in range(T_start-1, T_end)] 
 
 
