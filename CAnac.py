@@ -14,7 +14,8 @@ def version():
     print("CA-NAC 1.1.0_beta")
     print("Should you have any question, please contact wc_086@usc.edu")
     
-def combine(runDirs,bmin_s,bmax_s,obmin,obmax, ispin, ikpt, potim,is_alle,is_reorder,is_real,iformat):
+def combine(runDirs,bmin_s,bmax_s,obmin,obmax, ispin, ikpt, potim,
+            is_alle,is_reorder,is_real,iformat):
     
     Ev_To_Ry = 1.0 / 13.605662285137 
     Hbar_Ev = 0.6582119
@@ -26,13 +27,18 @@ def combine(runDirs,bmin_s,bmax_s,obmin,obmax, ispin, ikpt, potim,is_alle,is_reo
     tag_ae = 'ae' if is_alle else 'ps'
     tag_rd = 'rd' if is_reorder else ''
     tag_rl = '_real' if is_real else ''
+    
+    fileinfo = str(obmin) + '_' + str(obmax)+'_' + 'ispin' + \
+               str(ispin) + '_' + 'k' + str(ikpt) + '_' + \
+               tag_ae + tag_rd + tag_rl 
     # in  
     nac_filename='nac_'  + tag_ae + tag_rd + '.npy'
     eig_filename='eig_'  + tag_ae + tag_rd + '.npy'
+    
     # out
-    nacre_filename='CAnac_' + str(obmin) + '_' + str(obmax)+'_' + 'ispin' + str(ispin) + '_' + 'k' + str(ikpt) + '_' + tag_ae + tag_rd + tag_rl + '_re.txt'
-    nacim_filename='CAnac_' + str(obmin) + '_' + str(obmax)+'_' + 'ispin' + str(ispin) + '_' + 'k' + str(ikpt) + '_' + tag_ae + tag_rd + tag_rl + '_im.txt'
-    eig_out_filename='CAeig_' + str(obmin) + '_' + str(obmax)+'_' + 'ispin' + str(ispin) + '_' + 'k' + str(ikpt) + '_' + tag_ae + tag_rd + '.txt'
+    nacre_filename='CAnac_' + fileinfo + '_re.txt'
+    nacim_filename='CAnac_' + fileinfo + '_im.txt'
+    eig_out_filename='CAeig_' + fileinfo + '.txt'
     
     for i,dirs in enumerate(runDirs[:-1]):
         nac[i,:] = np.load(dirs+nac_filename).reshape(nbasis**2)
@@ -42,7 +48,8 @@ def combine(runDirs,bmin_s,bmax_s,obmin,obmax, ispin, ikpt, potim,is_alle,is_reo
         nac=np.abs(nac)*np.sign(nac.real)
         
     obasis = obmax - obmin + 1   
-    nac = nac.reshape(-1, nbasis, nbasis)[:, obmin-bmin_s : obmin-bmin_s+obasis, obmin-bmin_s : obmin-bmin_s+obasis]
+    nac = nac.reshape(-1, nbasis, nbasis)[:, 
+       obmin-bmin_s : obmin-bmin_s+obasis, obmin-bmin_s : obmin-bmin_s+obasis]
     nac = nac.reshape(-1, obasis*obasis)
     
     eig=eig[:, obmin-bmin_s : obmin-bmin_s+obasis]
@@ -51,7 +58,8 @@ def combine(runDirs,bmin_s,bmax_s,obmin,obmax, ispin, ikpt, potim,is_alle,is_reo
     if iformat=='PYXAID' or iformat=='P':
        
         for i,dirs in enumerate(runDirs[:-2]):
-            ham=(np.diag((eig[i,:]+eig[i+1,:])/2).flatten()+nac[i,:]/2.0/potim*-1j*Hbar_Ev).reshape(obasis,obasis)*Ev_To_Ry
+            ham=(np.diag((eig[i,:]+eig[i+1,:])/2).flatten()+
+               nac[i,:]/2.0/potim*-1j*Hbar_Ev).reshape(obasis,obasis)*Ev_To_Ry
             np.savetxt(dirs+'Ham%d_re' %(i),ham.real)
             np.savetxt(dirs+'Ham%d_im' %(i),ham.imag)
        
@@ -66,7 +74,8 @@ def task_checking(Dirs, obmin, obmax, ispin, ikpt, is_alle):
     
     t1 = time()
     tag_ae='ae' if is_alle else 'ps'
-    tdolap_filename='tdolap_' + str(obmin) + '_' + str(obmax) + '_' + str(ispin) + '_' + str(ikpt) + '_' + tag_ae + '.npy'
+    tdolap_filename='tdolap_' + str(obmin) + '_' + str(obmax) + '_' + \
+                    str(ispin) + '_' + str(ikpt) + '_' + tag_ae + '.npy'
     
     task_Dirs = np.zeros(len(Dirs), dtype=np.bool)
     completed_Dirs = np.zeros(len(Dirs), dtype=np.bool)
@@ -100,7 +109,8 @@ def task_checking(Dirs, obmin, obmax, ispin, ikpt, is_alle):
         
     
     # check if WAVECAR has been recalculated 
-#  This routine currently has a conflict if you removed WAVECARs after generating intermediate tdolap files.
+#  This routine currently has a conflict if you removed WAVECARs 
+#  after generating intermediate tdolap files.
 #    for i, rundir in enumerate(Dirs[:-1]):
         
 #        if waveA_Dirs[i] & tdolap_Dirs[i] :
@@ -114,13 +124,15 @@ def task_checking(Dirs, obmin, obmax, ispin, ikpt, is_alle):
     
     
     if completed_flag:
-        print ('Files integrity checking completed')
+        print ("Files integrity checking completed")
     else:
-        wav_missing=np.union1d(Dirs[~tdolap_Dirs & ~waveA_Dirs],(Dirs[1:])[~tdolap_Dirs[:-1] & ~waveB_Dirs[:-1]])
-        print ('%5d TDolaps to be calculated ' %task_Dirs[task_Dirs==True].shape)
-        print ('%5d WAVECARs to be calculated (VASP)' %wav_missing.shape[0] )
+        wav_missing=np.union1d(Dirs[~tdolap_Dirs & ~waveA_Dirs],
+                             (Dirs[1:])[~tdolap_Dirs[:-1] & ~waveB_Dirs[:-1]])
+        print ("%5d TDolaps to be calculated" \
+               %task_Dirs[task_Dirs==True].shape)
+        print ("%5d WAVECARs to be calculated (VASP)" %wav_missing.shape[0] )
         if wav_missing.shape[0] < 10:
-            print('Please provide WAVECAR for these directories:', wav_missing)
+            print("Please provide WAVECAR for these directories:", wav_missing)
     
     if True in task_Dirs:
         DirsA=(Dirs[:-1])[task_Dirs[:-1]]
@@ -128,7 +140,7 @@ def task_checking(Dirs, obmin, obmax, ispin, ikpt, is_alle):
         
     #print (DirsA,DirsB)
     t2 = time()
-    print ('2. Elapsed Time: %.4f [s] in integrity checking' % (t2 - t1))
+    print ("2. Elapsed Time: %.4f [s] in integrity checking" % (t2 - t1))
     return DirsA,DirsB,completed_flag
     
 def orthogon(cic):
@@ -198,8 +210,9 @@ def reorder_verification(runDirs,is_alle):
     
     eig_diff=np.load(runDirs[-2]+eig_filename)-np.load(runDirs[0]+eig_filename)
     if np.max(np.abs(eig_diff)) > 0.3:
-        print ('False reordering may exist!')
-        print ('Please plot the energy profile and carefully check the state reording!' )
+        print ("False reordering may exist!")
+        print ("Please plot the energy profile and" \
+               " carefully check the state reording!" )
 
 def phase_from_tdolap(td_olap,is_gamma):
     
@@ -241,13 +254,16 @@ def phasecor_apply(pij,pji,cc1,cc2,is_gamma,bmin_s,omin,nbasis):
     return nacs
 
 
-def nac_from_tdolap(dirA, omin, omax, ispin=1, ikpt=1, is_reorder=False, is_alle=False, is_gamma=False):  
+def nac_from_tdolap(dirA, omin, omax, ispin=1, ikpt=1, 
+                    is_reorder=False, is_alle=False, is_gamma=False):  
 #    t1 = time()
     prefix = dirA
         
     tag_ae='ae' if is_alle else 'ps'
-    tdolap_filename = prefix + 'tdolap_' + str(omin) + '_' + str(omax) + '_' + str(ispin) + '_' + str(ikpt) + '_' + tag_ae + '.npy' 
-    tdeig_filename = prefix + 'eig_' + str(omin) + '_' + str(omax) + '_' + str(ispin) + '_' + str(ikpt) + '.npy' 
+    tdolap_filename = prefix + 'tdolap_' + str(omin) + '_' + str(omax) + \
+                    '_' + str(ispin) + '_' + str(ikpt) + '_' + tag_ae + '.npy' 
+    tdeig_filename = prefix + 'eig_' + str(omin) + '_' + str(omax) + \
+                    '_' + str(ispin) + '_' + str(ikpt) + '.npy' 
         
         
     EnT=np.load(tdeig_filename)
@@ -277,8 +293,11 @@ def nac_from_tdolap(dirA, omin, omax, ispin=1, ikpt=1, is_reorder=False, is_alle
     if is_reorder:
         for i in range(len(perm1)):
             if perm1[i] != perm2[i] :
-                print ('Switched',dirA,perm1[i],perm2[i],"Energy difference",EnT[perm1[i]]-EnT[perm2[i]])
-                print ('Switched',dirA,perm1[i],perm2[i],"Overlap",np.abs(td_olap[perm1[i],perm1[i]]),np.abs(td_olap[perm1[i],perm2[i]]))
+                print ('Switched',dirA,perm1[i],perm2[i],"Energy difference",
+                       EnT[perm1[i]]-EnT[perm2[i]])
+                print ('Switched',dirA,perm1[i],perm2[i],"Overlap",
+                       np.abs(td_olap[perm1[i],perm1[i]]),
+                       np.abs(td_olap[perm1[i],perm2[i]]))
     # return EnT, raw overlap 
     return EnT, pij, pji, cc1, cc2 ,perm1, perm2
     
@@ -371,7 +390,8 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
     
 
     t2 = time()
-    print ('2. Elapsed Time: %.4f [s] in reading wavefunction and projector' % (t2 - t1))
+    print ('2. Elapsed Time: %.4f [s] in reading wavefunction and projector'
+           % (t2 - t1))
     t1 = t2
 
 
@@ -380,7 +400,8 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
     
     if OntheflyVerify & is_alle:
         S_olap = np.dot(cio_t.conj(),np.transpose(cio_t))
-        S_aug_olap = ae_aug_olap_martrix(bmin_s, bmax_s, cprojs1, cprojs1, paw_info, nkpts, nbands, ikpt, ispin)
+        S_aug_olap = ae_aug_olap_martrix(bmin_s, bmax_s, cprojs1, cprojs1, 
+                                         paw_info, nkpts, nbands, ikpt, ispin)
         S_olap = S_olap + S_aug_olap
         
         realtime_checking(S_olap, dirA)
@@ -390,14 +411,16 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
 
 
     if is_alle:
-        td_aug_olap=ae_aug_olap_martrix(bmin_s, bmax_s, cprojs1, cprojs2, paw_info, nkpts, nbands, ikpt, ispin)
+        td_aug_olap=ae_aug_olap_martrix(bmin_s, bmax_s, cprojs1, cprojs2, 
+                                        paw_info, nkpts, nbands, ikpt, ispin)
         td_olap = td_olap + td_aug_olap
     
         t2 = time()
         print ('2. Elapsed Time: %.4f [s] in aug_overlap' % (t2 - t1))
         t1 = t2
 
-#  # EnT = (phi_i._bands[ispin-1,ikpt-1,:] + phi_j._bands[ispin-1,ikpt-1,:]) / 2.
+#  # EnT = (phi_i._bands[ispin-1,ikpt-1,:] + 
+#           phi_j._bands[ispin-1,ikpt-1,:]) / 2.
     EnT = phi_i._bands[ispin-1, ikpt-1, bmin_s-1:bmax_s]
     
     # close the wavecar
@@ -429,7 +452,11 @@ def parallel_tdolap_calc(dirA, dirB, checking_dict, nproc=None, is_alle=False,
  
     for w1, w2 in zip(dirA, dirB):
        
-        res = pool.apply_async(tdolap_from_vaspwfc, (w1, w2, paw_info, is_alle, bmin_s, bmax_s, omin, omax, ikpt, ispin, icor, checking_dict['onthefly_verification']))
+        res = pool.apply_async(tdolap_from_vaspwfc, (w1, w2, paw_info, 
+                                                     is_alle, bmin_s, bmax_s, 
+                                                     omin, omax, 
+                                                     ikpt, ispin, icor, 
+                                      checking_dict['onthefly_verification']))
         results.append(res)
 
     for ii in range(len(dirA)):
@@ -441,8 +468,11 @@ def parallel_tdolap_calc(dirA, dirB, checking_dict, nproc=None, is_alle=False,
         
         tag_ae='ae' if is_alle else 'ps'
 
-        tdolap_filename = prefix + 'tdolap_' + str(omin) + '_' + str(omax) + '_' + str(ispin) + '_' + str(ikpt) + '_' + tag_ae + '.npy' 
-        tdeig_filename = prefix + 'eig_' + str(omin) + '_' + str(omax) + '_' + str(ispin) + '_' + str(ikpt) + '.npy' 
+        tdolap_filename = prefix + 'tdolap_' + str(omin) + '_' + str(omax) + \
+                            '_' + str(ispin) + '_' + str(ikpt) + '_' + \
+                                tag_ae + '.npy' 
+        tdeig_filename = prefix + 'eig_' + str(omin) + '_' + str(omax) + \
+                             '_' + str(ispin) + '_' + str(ikpt) + '.npy' 
         
         
         np.save(tdeig_filename, et)
@@ -452,7 +482,8 @@ def parallel_tdolap_calc(dirA, dirB, checking_dict, nproc=None, is_alle=False,
 ############################################################
 
 
-def parallel_nac_calc(runDirs, nproc=None, is_gamma=False, is_reorder=False, is_alle=False, 
+def parallel_nac_calc(runDirs, nproc=None, 
+                      is_gamma=False, is_reorder=False, is_alle=False, 
                       bmin_s=None, bmax_s=None,omin=None, omax=None,
                       ikpt=1, ispin=1, icor=1):
     '''
@@ -469,7 +500,10 @@ def parallel_nac_calc(runDirs, nproc=None, is_gamma=False, is_reorder=False, is_
 
  
     for w1 in runDirs:
-        res = pool.apply_async(nac_from_tdolap, (w1, omin, omax, ispin, ikpt, is_reorder, is_alle, is_gamma))
+        res = pool.apply_async(nac_from_tdolap, (w1, omin, omax, 
+                                                 ispin, ikpt, 
+                                                 is_reorder, is_alle, 
+                                                 is_gamma))
         results.append(res)
 
     for ii in range(len(runDirs)-1):
@@ -498,7 +532,8 @@ def parallel_nac_calc(runDirs, nproc=None, is_gamma=False, is_reorder=False, is_
                     cc1 = cc_next.copy()
                     cc2 = cc1 * cc2    
         
-        nc = phasecor_apply(pij, pji, cc1, cc2, is_gamma, bmin_s, omin, bmax_s - bmin_s + 1) 
+        nc = phasecor_apply(pij, pji, cc1, cc2, is_gamma, 
+                            bmin_s, omin, bmax_s - bmin_s + 1) 
         
         #Writing
         prefix = runDirs[ii]
@@ -533,14 +568,16 @@ def parallel_nac_calc(runDirs, nproc=None, is_gamma=False, is_reorder=False, is_
 
 
 
-def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False, is_reorder=False, is_alle=False, is_real=False, is_combine=False,
+def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False, 
+             is_reorder=False, is_alle=False, is_real=False, is_combine=False,
              iformat='HFNAMD', ibmin=None, ibmax=None,
              bmin_s=None, bmax_s=None,omin=None, omax=None,
              ikpt=1, ispin=1, icor=1, potim=1.0):
     
     
     if is_alle == True and is_gamma == True:
-        print("Currently, all-electron NAC does not support gamma-version WAVECAR")
+        print("Currently, all-electron NAC" \
+              " does not support gamma-version WAVECAR")
         sys.exit(0)
   
     skip_file_verification  = checking_dict['skip_file_verification']
@@ -552,50 +589,71 @@ def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False, is_reorder=Fals
     
     if not skip_file_verification:
         print ("Checking Files Integrity")
-        DirA,DirB,completed_flag = task_checking(runDirs, omin, omax, ispin, ikpt, is_alle)
+        DirA,DirB,completed_flag = task_checking(runDirs, omin, omax, 
+                                                 ispin, ikpt, is_alle)
     
         if DirA is not None:
             print ("Starting TDolap Calculations")
-            parallel_tdolap_calc(DirA, DirB, checking_dict, nproc, is_alle, bmin_s, bmax_s, omin, omax, ikpt, ispin, icor)
-            DirA,DirB,completed_flag = task_checking(runDirs, omin, omax, ispin, ikpt, is_alle)
+            parallel_tdolap_calc(DirA, DirB, checking_dict, nproc, is_alle, 
+                                 bmin_s, bmax_s, omin, omax, 
+                                 ikpt, ispin, icor)
+            DirA,DirB,completed_flag = task_checking(runDirs, omin, omax, 
+                                                     ispin, ikpt, is_alle)
     
         if completed_flag: 
             print ("Starting CA-NAC")
-            parallel_nac_calc(runDirs, nproc, is_gamma, is_reorder, is_alle, bmin_s, bmax_s, omin, omax, ikpt, ispin, icor)
+            parallel_nac_calc(runDirs, nproc, is_gamma, is_reorder, is_alle, 
+                              bmin_s, bmax_s, omin, omax, 
+                              ikpt, ispin, icor)
             print ("CA-NAC Calculations is done")
             if is_combine:
                 print ("Generating Standard Input for ", iformat)
-                combine(runDirs, bmin_s, bmax_s, ibmin, ibmax, ispin, ikpt, potim, is_alle, is_reorder, is_real,iformat)
+                combine(runDirs, bmin_s, bmax_s, ibmin, ibmax, 
+                        ispin, ikpt, potim, 
+                        is_alle, is_reorder, is_real,iformat)
                 if is_reorder:
-                    print("The state tracking( is_reorder = True) is turned on, please check the reordering carefully")
+                    print("The state tracking( is_reorder = True) is turned" \
+                          " on, please check the reordering carefully")
                     reorder_verification(runDirs, is_alle)
                 if not is_real:
-                    print("The current NACs are complex value (is_real = False), which are not supported by Hefei-NAMD and PYXAID(default integrator) ")
+                    print("The current NACs are complex value" \
+                          "(is_real = False), which are not supported by" \
+                          " Hefei-NAMD and PYXAID(default integrator)")
                     print("Please be aware of that!!!")
 
         
         else:
-            print('WAVECAR generation are not finished or TDolap files are incomplete' ) 
+            print("WAVECAR generation are not finished" \
+                  "or TDolap files are incomplete" ) 
     
     if skip_TDolap_calc:
         if skip_NAC_calc:
             if is_combine:
                 print ("Generating Standard Input for ", iformat)
-                combine(runDirs, bmin_s, bmax_s, ibmin, ibmax, ispin, ikpt, potim, is_alle, is_reorder, is_real, iformat)
+                combine(runDirs, bmin_s, bmax_s, ibmin, ibmax, 
+                        ispin, ikpt, potim, 
+                        is_alle, is_reorder, is_real, iformat)
                 if is_reorder:
                     reorder_verification(runDirs, is_alle)
         else:
             print ("Starting CA-NAC")
-            parallel_nac_calc(runDirs, nproc, is_gamma, is_reorder, is_alle, bmin_s, bmax_s, omin, omax, ikpt, ispin, icor)
+            parallel_nac_calc(runDirs, nproc, is_gamma, is_reorder, is_alle, 
+                              bmin_s, bmax_s, omin, omax, 
+                              ikpt, ispin, icor)
             print ("CA-NAC Calculations is done")
             if is_combine:
                 print ("Generating Standard Input for ", iformat)
-                combine(runDirs, bmin_s, bmax_s, ibmin, ibmax, ispin, ikpt, potim, is_alle, is_reorder, is_real,iformat)
+                combine(runDirs, bmin_s, bmax_s, ibmin, ibmax, 
+                        ispin, ikpt, potim, 
+                        is_alle, is_reorder, is_real,iformat)
                 if is_reorder:
-                    print("The state tracking(is_reorder = True) is turned on, please check the reordering carefully")
+                    print("The state tracking(is_reorder = True) is turned" \
+                          " on, please check the reordering carefully")
                     reorder_verification(runDirs, is_alle)
                 if not is_real:
-                    print("The current NACs are complex value (is_real = False), which are not supported by Hefei-NAMD and PYXAID(default integrator) ")
+                    print("The current NACs are complex value" \
+                          "(is_real = False), which are not supported by" \
+                          " Hefei-NAMD and PYXAID(default integrator)")
                     print("Please be aware of that!!!")
 
     
@@ -604,7 +662,8 @@ if __name__ == '__main__':
     T_end   = 1000 
     
 # NAC calculations and Genration of standard input for HFNAMD or PYXAID
-# bmin and bmax are actual band index in VASP, and should be same with the bmin and bmax in your NAMD simulation.
+# bmin and bmax are actual band index in VASP, 
+# and should be same with the bmin and bmax in your NAMD simulation.
     is_combine = True   #If generate standard input for HFNAMD or PYXAID
     #iformat = "PYXAID" 
     iformat = "HFNAMD"
@@ -614,25 +673,31 @@ if __name__ == '__main__':
     
 # Time-overlap 
 # bmin_stored bmax_stored are actual band index in VASP
-# Use a large basis sets here if you would like to remove WAVECAR to save disk usage
+# Use a large basis sets here if 
+# you would like to remove WAVECAR to save disk usage
 # Or when you turn on the state reordering  
-    #bmin_stored = bmin - 10
-    #bmax_stored = bmax + 10
+# bmin_stored = bmin - 10
+# bmax_stored = bmax + 10
     bmin_stored    = 166       
     bmax_stored    = 186       
     
 
     nproc   = 4         # Number of cores used in parallelization
-
-    is_gamma_version  = False  # Which VASP version is used!!  vasp_std False  vasp_gam True
-    is_reorder= True    # If turn on State Reordering   True or False
-    is_alle   = True    # If use All-electron wavefunction(require NORMALCAR) True or False
-    is_real   = True   # If rotate wavefunction to ensure NAC is real value. True or False
+    
+    is_gamma_version  = False  # Which VASP version is used!!  
+                               # vasp_std False  vasp_gam True
+    is_reorder= False    # If turn on State Reordering  
+                        # True (use with care) or False
+    is_alle   = True    # If use All-electron wavefunction 
+                        # (require NORMALCAR) True or False
+    is_real   = True    # If rotate wavefunction to ensure NAC is real value.
+                        # True (Mandatory for HFNAMD and PYXAID) or False.
     
     ikpt    = 1         #k-point index, starting from 1 to NKPTS
     ispin   = 1         #spin index, 1 or 2
 
-# Directories structure. Here, 0001 for 1st ionic step, 0002 for 2nd ionic step, etc.
+# Directories structure. 
+# Here, 0001 for 1st ionic step, 0002 for 2nd ionic step, etc.
 # Don't forget the forward slash at the end.
     Dirs = ['./%04d/' % (ii + 1) for ii in range(T_start-1, T_end)] 
 
@@ -651,10 +716,14 @@ if __name__ == '__main__':
     skip_NAC_calc = False
     onthefly_verification  = True
     
-    checking_dict={'skip_file_verification':skip_file_verification,'skip_TDolap_calc':skip_TDolap_calc,'skip_NAC_calc':skip_NAC_calc,'onthefly_verification':onthefly_verification}
+    checking_dict={'skip_file_verification':skip_file_verification,
+                   'skip_TDolap_calc':skip_TDolap_calc,
+                   'skip_NAC_calc':skip_NAC_calc,
+                   'onthefly_verification':onthefly_verification}
     
     
-    nac_calc(Dirs, checking_dict, nproc, is_gamma_version, is_reorder, is_alle, is_real, is_combine,
+    nac_calc(Dirs, checking_dict, nproc, 
+             is_gamma_version, is_reorder, is_alle, is_real, is_combine,
              iformat, bmin, bmax,
              bmin_stored, bmax_stored, omin, omax,
              ikpt, ispin, icor, potim )

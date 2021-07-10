@@ -7,7 +7,8 @@ T_start = 1
 T_end   = 1000 
     
 # NAC calculations and Genration of standard input for HFNAMD or PYXAID
-# bmin and bmax are actual band index in VASP, and should be same with the bmin and bmax in your NAMD simulation.
+# bmin and bmax are actual band index in VASP,
+# and should be same with the bmin and bmax in your NAMD simulation.
 is_combine = True   #If generate standard input for HFNAMD or PYXAID
 #iformat = "PYXAID" 
 iformat = "HFNAMD"
@@ -17,25 +18,31 @@ potim   = 1         # Nuclear timestep, unit: fs
     
 # Time-overlap 
 # bmin_stored bmax_stored are actual band index in VASP
-# Use a large basis sets here if you would like to remove WAVECAR to save disk usage
+# Use a large basis sets here if 
+# you would like to remove WAVECAR to save disk usage
 # Or when you turn on the state reordering  
-#bmin_stored = bmin - 10
-#bmax_stored = bmax + 10
+# bmin_stored = bmin - 10
+# bmax_stored = bmax + 10
 bmin_stored    = 50      
 bmax_stored    = 200       
     
 
 nproc   = 4         # Number of cores used in parallelization
 
-is_gamma_version  = False  # Which VASP version is used!!  vasp_std False  vasp_gam True
-is_reorder= True    # If turn on State Reordering   True or False
-is_alle   = True    # If use All-electron wavefunction(require NORMALCAR) True or False
-is_real   = True   # If rotate wavefunction to ensure NAC is real value. True or False
+is_gamma_version  = False  # Which VASP version is used!!  
+                           # vasp_std False  vasp_gam True
+is_reorder= False    # If turn on State Reordering  
+                    # True (use with care) or False
+is_alle   = True    # If use All-electron wavefunction 
+                    # (require NORMALCAR) True or False
+is_real   = True    # If rotate wavefunction to ensure NAC is real value.
+                    # True (Mandatory for HFNAMD and PYXAID) or False.
     
 ikpt    = 1         #k-point index, starting from 1 to NKPTS
 ispin   = 1         #spin index, 1 or 2
 
-# Directories structure. Here, 0001 for 1st ionic step, 0002 for 2nd ionic step, etc.
+# Directories structure. 
+# Here, 0001 for 1st ionic step, 0002 for 2nd ionic step, etc.
 # Don't forget the forward slash at the end.
 Dirs = ['./%04d/' % (ii + 1) for ii in range(T_start-1, T_end)] 
 
@@ -55,10 +62,14 @@ skip_TDolap_calc = False
 skip_NAC_calc = False
 onthefly_verification  = True
     
-checking_dict={'skip_file_verification':skip_file_verification,'skip_TDolap_calc':skip_TDolap_calc,'skip_NAC_calc':skip_NAC_calc,'onthefly_verification':onthefly_verification}
+checking_dict={'skip_file_verification':skip_file_verification,
+               'skip_TDolap_calc':skip_TDolap_calc,
+               'skip_NAC_calc':skip_NAC_calc,
+               'onthefly_verification':onthefly_verification}
     
     
-nac_calc(Dirs, checking_dict, nproc, is_gamma_version, is_reorder, is_alle, is_real, is_combine,
+nac_calc(Dirs, checking_dict, nproc, 
+         is_gamma_version, is_reorder, is_alle, is_real, is_combine,
          iformat, bmin, bmax,
          bmin_stored, bmax_stored, omin, omax,
          ikpt, ispin, icor, potim )

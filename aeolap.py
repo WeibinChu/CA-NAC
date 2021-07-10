@@ -14,7 +14,9 @@ def read_diffovlap(datastr):
     #nmax = int(data[0].split()[0])
     #print data
     grid_start_idx = data.index(" augmentation charges (non sperical)") + 1
-    diffovlap_data = np.array([ x for line in data[grid_start_idx:] for x in line.strip().split() if not re.match(r'\ \w+', line) ], dtype=float)
+    diffovlap_data = np.array([ x for line in data[grid_start_idx:] \
+                               for x in line.strip().split() if not \
+                                   re.match(r'\ \w+', line) ], dtype=float)
     return diffovlap_data
 
 
@@ -82,7 +84,8 @@ class PawProj_info(object):
             #aug_chg_part=potstr.split('uccopancies in atom')[0] 
             #dif_olap=read_diffovlap(aug_chg_part)
 
-            #dif_olap=dif_olap.reshape(pawpp.proj_l.shape[0],pawpp.proj_l.shape[0])
+            #dif_olap=dif_olap.reshape(pawpp.proj_l.shape[0],
+            #                          pawpp.proj_l.shape[0])
 
             res = self.proj_lm_gen(pawpp.proj_l.tolist())
     
@@ -99,9 +102,13 @@ class PawProj_info(object):
             for i in range(p_tot):
                 if i == 0 and res[0][i]==res[0][i+res[0][i]*2+1]:
                     rotate_idx[i]= i+(res[0][i]*2+1)
-                elif i-(res[0][i]*2+1) >=0 and res[0][i]==res[0][i-res[0][i]*2-1]:
+                elif i-(res[0][i]*2+1) >=0 and \
+                        res[0][i]==res[0][i-res[0][i]*2-1]:
+                        
                     rotate_idx[i]= i-(res[0][i]*2+1)
-                elif i+(res[0][i]*2+1) <p_tot and res[0][i]==res[0][i+res[0][i]*2+1]:
+                elif i+(res[0][i]*2+1) <p_tot and \
+                        res[0][i]==res[0][i+res[0][i]*2+1]:
+                    
                     rotate_idx[i]= i+(res[0][i]*2+1)
                 else:
                     single_idx.extend([i])            
@@ -136,7 +143,8 @@ class PawProj_info(object):
         proj_cum=0
         r_idx=[]
         for i in p1.element_idx:
-            r_idx +=(np.array(rotate_idx_tot[i],dtype=np.int)+proj_cum).tolist()
+            r_idx +=(np.array(rotate_idx_tot[i],dtype=np.int)+
+                     proj_cum).tolist()
             difq_ii_complete += difq_ii[i].tolist()
             difq_ij_complete += difq_ij[i].tolist()
             proj_cum=proj_cum + proj_tot[i]
@@ -161,7 +169,8 @@ class PawProj_info(object):
         self.rotate_idx = r_idx
         print ('1. Elapsed Time: %.4f [s] in Qij Construction' % (t1 - t0))
         
-def ae_aug_olap_martrix(bmin,bmax,cprojs1,cprojs2,proj_info,nkpts,nbands,ikpt=1,ispin=1):
+def ae_aug_olap_martrix(bmin,bmax,cprojs1,cprojs2,proj_info,
+                        nkpts,nbands,ikpt=1,ispin=1):
     
      nbasis=bmax-bmin+1
      aug_=ispinlap_matrix=np.zeros((nbasis,nbasis),dtype=np.complex)
@@ -178,7 +187,8 @@ def ae_aug_olap_martrix(bmin,bmax,cprojs1,cprojs2,proj_info,nkpts,nbands,ikpt=1,
          ctmp[:,i]=cproj2[:,j]
      
      cproj2_rotate=ctmp
-     aug_olap_matrix= tmp + np.dot(cproj1.conj()*proj_info.difq_ij,cproj2_rotate.transpose())
+     aug_olap_matrix= tmp + np.dot(cproj1.conj()*proj_info.difq_ij,
+                                   cproj2_rotate.transpose())
    
      return aug_olap_matrix
 
@@ -203,7 +213,8 @@ def test(bmin=5,bmax=40,dir0='./'):
     wfc_coef = np.zeros([nbasis] + list(cptwf.shape),dtype=np.complex)
     td_olap = np.zeros((nbasis,nbasis),dtype=np.complex)
     
-    aug_olap=ae_aug_olap_martrix(bmin,bmax,cprojs1,cprojs2,proj,nkpts,nbands,ikpt,ispin)
+    aug_olap=ae_aug_olap_martrix(bmin,bmax,cprojs1,cprojs2,proj,
+                                 nkpts,nbands,ikpt,ispin)
     
     for i in range(nbasis):
         nband=bmin+i

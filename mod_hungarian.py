@@ -12,7 +12,8 @@
 .. module:: hungarian
    :platform: Unix, Windows
    :synopsis: 
-       This module implements the Munkres-Kuhn algorithm for the assignment problem
+       This module implements the Munkres-Kuhn algorithm 
+       for the assignment problem
        The implementation of the code is based on the instructions from:
        http://csclab.murraystate.edu/~bob.pilgrim/445/munkres.html
 
@@ -21,9 +22,11 @@
            1. http://www.public.iastate.edu/~ddoty/HungarianAlgorithm.html
            2. Harold W. Kuhn. The Hungarian Method for the assignment problem.
                *Naval Research Logistics Quarterly*, 2:83-97, 1955.
-           3. Harold W. Kuhn. Variants of the Hungarian method for assignment
-               problems. *Naval Research Logistics Quarterly*, 3: 253-258, 1956.
-           4. Munkres, J. Algorithms for the Assignment and Transportation Problems.
+           3. Harold W. Kuhn. Variants of the Hungarian method 
+           for assignment problems. 
+           *Naval Research Logistics Quarterly*, 3: 253-258, 1956.
+           4. Munkres, J. Algorithms for the Assignment 
+           and Transportation Problems.
                *Journal of the Society of Industrial and Applied Mathematics*,
                5(1):32-38, March, 1957.
            5. http://en.wikipedia.org/wiki/Hungarian_algorithm
@@ -50,7 +53,8 @@ import unittest
 
 def step1(X):
     """
-    For each row of the matrix, find the smallest element and subtract it from every 
+    For each row of the matrix, find the smallest element 
+    and subtract it from every 
     element in its row. Go to Step 2. 
     """
 
@@ -63,8 +67,9 @@ def step1(X):
 
 def step2(X, M, Rcov, Ccov):
     """
-    Find a zero (Z) in the resulting matrix. If there is no starred zero in its row or column, 
-    star Z. Repeat for each element in the matrix. Go to Step 3. 
+    Find a zero (Z) in the resulting matrix. If there is no starred zero in 
+    its row or column, star Z. 
+    Repeat for each element in the matrix. Go to Step 3. 
     """
 
     n = X.shape[1]
@@ -77,8 +82,8 @@ def step2(X, M, Rcov, Ccov):
                 Ccov[j] = 1
 
     """ 
-    Before we go on to Step 3, we uncover all rows and columns so that we can use the
-    cover vectors to help us count the number of starred zeros
+    Before we go on to Step 3, we uncover all rows and columns so that we can 
+    use the cover vectors to help us count the number of starred zeros
     """
     for i in range(0,n):
         Rcov[i] = 0
@@ -90,8 +95,8 @@ def step2(X, M, Rcov, Ccov):
 def step3(M, Ccov):
     """   
     Cover each column containing a starred zero.  
-    If K columns are covered, the starred zeros describe a complete set of unique assignments.
-    In this case, Go to DONE, otherwise, Go to Step 4.
+    If K columns are covered, the starred zeros describe a complete set of 
+    unique assignments. In this case, Go to DONE, otherwise, Go to Step 4.
     """
 
     n = len(M)
@@ -176,9 +181,10 @@ def find_prime_in_row(M, row):
 def step4(X, M, Rcov, Ccov):
     """
     Find a noncovered zero and prime it. 
-    If there is no starred zero in the row containing this primed zero, Go to Step 5. 
-    Otherwise, cover this row and uncover the column containing the starred zero. 
-    Continue in this manner until there are no uncovered zeros left. 
+    If there is no starred zero in the row containing this primed zero, Go to 
+    Step 5. Otherwise, cover this row and uncover the column containing the 
+    starred zero. Continue in this manner until there are no uncovered zeros 
+    left.
     Save the smallest uncovered value and Go to Step 6.
     """
 
@@ -244,9 +250,11 @@ def step5(M, path_row_0, path_col_0, Rcov, Ccov):
     Let Z0 represent the uncovered primed zero found in Step 4.
     Let Z1 denote the starred zero in the column of Z0 (if any). 
     Let Z2 denote the primed zero in the row of Z1 (there will always be one).  
-    Continue until the series terminates at a primed zero that has no starred zero in its column.  
-    Unstar each starred zero of the series, star each primed zero of the series, erase all primes
-    and uncover every line in the matrix. Return to Step 3. 
+    Continue until the series terminates at a primed zero that has no starred 
+    zero in its column.  
+    Unstar each starred zero of the series, star each primed zero of the 
+    series, erase all primes and uncover every line in the matrix. 
+    Return to Step 3. 
     """ 
     done = False
     r = -1
@@ -297,8 +305,9 @@ def find_smallest(X, Rcov, Ccov):
 
 def step6(X, Rcov, Ccov):
     """
-    Add the value found in Step 4 to every element of each covered row, and subtract it from
-    every element of each uncovered column.  Return to Step 4 without altering any stars, 
+    Add the value found in Step 4 to every element of each covered row, and 
+    subtract it from every element of each uncovered column.  Return to 
+    Step 4 without altering any stars, 
     primes, or covered lines. 
     """
 
