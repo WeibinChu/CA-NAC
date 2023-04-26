@@ -6,6 +6,12 @@ def dummy(): pass
 class hamnetwfc(object):
 
   def __init__(self, dir:str) -> None:
+    '''
+    Now only support gamma calcuation, single spin.
+    Since we use exact diag method. 
+    We shall always get all the eigenvalues & eigenvectors.
+    nbands = norbitals
+    '''
     self._dname = dir
     self._fname = os.path.join(dir, 'wfc.npy')
     self._ename = os.path.join(dir, 'eigen.npy')
@@ -22,7 +28,7 @@ class hamnetwfc(object):
     return True if self._lgam else False
   
   def readWF(self):
-    self._wfc:np.ndarray = np.load(self._fname)
+    self._wfc:np.ndarray = np.load(self._fname) # shape: (nbands, nbands)
     self._wfc.close = dummy
     self._nkpts = 1
     self._nspin = 1
@@ -30,7 +36,7 @@ class hamnetwfc(object):
     self._nplws = [self._wfc.shape[1]]*self._nkpts
     self._kvecs = np.zeros((self._nkpts, 3), dtype=float)
     # energy
-    self._bands = np.load(self._ename).reshape(self._nspin, self._nkpts, -1)
+    self._bands = np.load(self._ename).reshape(self._nspin, self._nkpts, -1) # shape: (nspin, nkpts, nbands)
 
   def readBandCoeff(self, ispin=1, ikpt=1, iband=1, norm=False):
     '''

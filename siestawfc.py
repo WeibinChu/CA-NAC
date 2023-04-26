@@ -1,9 +1,10 @@
 import numpy as np
 import os
-import io
 
 # int = np.int32 = integer(kind=4)
 # float = np.float64 = real(kind=8)
+
+ry2ev = 13.605662285137 
 
 def fromfortran(fp, dtype, count=1):
   pos = fp.tell()
@@ -117,8 +118,7 @@ class siestawfc(object):
           self._wfc.seek(pos + length + 8) # length = 4*self._nuotot*self._nspin
         self._bands[iispin][iik] = dumpB
         self._recs[iispin][iik] = dumpR
-    self._bands = np.array(self._bands, dtype=np.float32)
-    a = 1
+    self._bands = np.array(self._bands, dtype=np.float32) * ry2ev
 
   def get_ps_wfc(self, *args, **kwargs):
     '''

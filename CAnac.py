@@ -10,12 +10,14 @@ from vaspwfc import vaspwfc
 from aeolap import PawProj_info,ae_aug_olap_martrix,test,realtime_checking
 from spinorb import read_cproj_NormalCar
 
-SOFTWARE = 'SIESTA'  # VASP    | SIESTA          | HAMNET
-WAVECAR  = 'WAVECAR' # WAVECAR | Sys.fullBZ.WFSX | ''
+SOFTWARE = 'SIESTA'  # VASP    | SIESTA          | HAMNET | ABACUS
+WAVECAR  = 'WAVECAR' # WAVECAR | Sys.fullBZ.WFSX | ''     | ''
 if SOFTWARE == 'SIESTA':
     from siestawfc import siestawfc
 elif SOFTWARE == 'HAMNET':
     from hamnetwfc import hamnetwfc
+elif SOFTWARE == 'ABACUS':
+    from abacuswfc import abacuswfc
 
 def version():
     print("CA-NAC 1.1.0_beta")
@@ -343,6 +345,9 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
     elif SOFTWARE  == 'HAMNET':
         phi_i = hamnetwfc(waveA)
         phi_j = hamnetwfc(waveB)
+    elif SOFTWARE == 'ABACUS':
+        phi_i = abacuswfc(waveA)
+        phi_j = abacuswfc(waveB)
     
     normalcar_i = dirA + '/NormalCAR'
     normalcar_j = dirB + '/NormalCAR'
@@ -411,7 +416,7 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
 
     if SOFTWARE == 'VASP':
         td_olap=np.dot(cio_t.conj(),np.transpose(cio_tdt)) # shape: (obasis, obasis)
-    elif SOFTWARE == 'SIESTA' or SOFTWARE == 'HAMNET':
+    elif SOFTWARE == 'SIESTA' or SOFTWARE == 'HAMNET' or SOFTWARE == 'ABACUS':
         try:
             SK = np.load(os.path.join(dirA, 'tdoverlap.npy'))
         except:
