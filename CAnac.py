@@ -10,6 +10,15 @@ from vaspwfc import vaspwfc
 from aeolap import PawProj_info,ae_aug_olap_martrix,test,realtime_checking
 from spinorb import read_cproj_NormalCar
 
+SOFTWARE = 'SIESTA'  # VASP    | SIESTA          | HAMNET | ABACUS
+WAVECAR  = 'WAVECAR' # WAVECAR | Sys.fullBZ.WFSX | ''     | ''
+if SOFTWARE == 'SIESTA':
+    from siestawfc import siestawfc
+elif SOFTWARE == 'HAMNET':
+    from hamnetwfc import hamnetwfc
+elif SOFTWARE == 'ABACUS':
+    from abacuswfc import abacuswfc
+
 def version():
     print("CA-NAC 1.1.0_beta")
     print("Should you have any question, please contact wc_086@usc.edu")
@@ -93,7 +102,7 @@ def task_checking(Dirs, obmin, obmax, ispin, ikpt, is_alle):
         if os.path.exists(rundir+tdolap_filename):  
             tdolap_Dirs[i] = True
             
-        if os.path.exists(rundir+"WAVECAR"):
+        if os.path.exists(rundir+WAVECAR):
             waveA_Dirs[i] = True
             if i>0:
                 waveB_Dirs[i-1] = True 
@@ -324,11 +333,21 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     '''
     
-    waveA=dirA+'WAVECAR'
-    waveB=dirB+'WAVECAR'
+    waveA=dirA+WAVECAR
+    waveB=dirB+WAVECAR
 
-    phi_i = vaspwfc(waveA)      # wavecar at t
-    phi_j = vaspwfc(waveB)      # wavecar at t + dt
+    if SOFTWARE == 'VASP':
+        phi_i = vaspwfc(waveA)      # wavecar at t
+        phi_j = vaspwfc(waveB)      # wavecar at t + dt
+    elif SOFTWARE == 'SIESTA':
+        phi_i = siestawfc(waveA)
+        phi_j = siestawfc(waveB)
+    elif SOFTWARE  == 'HAMNET':
+        phi_i = hamnetwfc(waveA)
+        phi_j = hamnetwfc(waveB)
+    elif SOFTWARE == 'ABACUS':
+        phi_i = abacuswfc(waveA)
+        phi_j = abacuswfc(waveB)
     
     normalcar_i = dirA + '/NormalCAR'
     normalcar_j = dirB + '/NormalCAR'
@@ -359,7 +378,7 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
     
 
 
-    print (cic_t.shape)
+    print (cic_t.shape) # shape: (obasis, nplws)
     
     
     t1 = time()
@@ -395,8 +414,14 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
     t1 = t2
 
 
-    
-    td_olap=np.dot(cio_t.conj(),np.transpose(cio_tdt))
+    if SOFTWARE == 'VASP':
+        td_olap=np.dot(cio_t.conj(),np.transpose(cio_tdt)) # shape: (obasis, obasis)
+    elif SOFTWARE == 'SIESTA' or SOFTWARE == 'HAMNET' or SOFTWARE == 'ABACUS':
+        try:
+            SK = np.load(os.path.join(dirA, 'tdoverlap.npy'))
+        except:
+            raise IOError('Cannot open %s file.' % os.path.join(dirA, 'tdoverlap.npy'))
+        td_olap = np.einsum('mi, ij, nj -> mn', cio_t.conj(), SK, cio_t)
     
     if OntheflyVerify & is_alle:
         S_olap = np.dot(cio_t.conj(),np.transpose(cio_t))
