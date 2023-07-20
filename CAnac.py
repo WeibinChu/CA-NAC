@@ -10,7 +10,7 @@ from vaspwfc import vaspwfc
 from aeolap import PawProj_info,ae_aug_olap_martrix,test,realtime_checking
 from spinorb import read_cproj_NormalCar
 
-SOFTWARE = 'SIESTA'  # VASP    | SIESTA          | HAMNET | ABACUS
+SOFTWARE = 'VASP'  # VASP    | SIESTA          | HAMNET | ABACUS
 WAVECAR  = 'WAVECAR' # WAVECAR | Sys.fullBZ.WFSX | ''     | ''
 if SOFTWARE == 'SIESTA':
     from siestawfc import siestawfc
