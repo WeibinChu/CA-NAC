@@ -21,7 +21,7 @@ elif SOFTWARE == 'ABACUS':
 
 def version():
     print("CA-NAC 1.1.0_beta")
-    print("Should you have any question, please contact wc_086@usc.edu")
+    print("Should you have any question, please contact wbchu@fudan.edu.cn")
     
 def combine(runDirs,bmin_s,bmax_s,obmin,obmax, ispin, ikpt, potim,
             is_alle,is_reorder,is_real,iformat):
