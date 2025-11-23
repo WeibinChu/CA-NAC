@@ -3,6 +3,7 @@
 import os
 import sys
 import numpy as np
+from scipy.sparse import csr_matrix as csr
 import multiprocessing
 from time import time
 import mod_hungarian as hungarian
@@ -10,19 +11,23 @@ from vaspwfc import vaspwfc
 from aeolap import PawProj_info,ae_aug_olap_martrix,test,realtime_checking
 from spinorb import read_cproj_NormalCar
 
-SOFTWARE = 'VASP'  # VASP    | SIESTA          | HAMNET | ABACUS
-WAVECAR  = 'WAVECAR' # WAVECAR | Sys.fullBZ.WFSX | ''     | ''
+is_soc = False
+SOFTWARE = 'VASP'    # VASP    | SIESTA          | HAMNET | HAMGNNHUGE | ABACUS | CP2K
+WAVECAR  = 'WAVECAR' # WAVECAR | Sys.fullBZ.WFSX | ''     | ''         |''      | WAVECAR
+
 if SOFTWARE == 'SIESTA':
     from siestawfc import siestawfc
 elif SOFTWARE == 'HAMNET':
     from hamnetwfc import hamnetwfc
+elif SOFTWARE == 'HAMGNNHUGE':
+    from hamgnnhugewfc import hamgnnhugewfc
 elif SOFTWARE == 'ABACUS':
     from abacuswfc import abacuswfc
 elif SOFTWARE == 'CP2K':
     from cp2kwfc import cp2kwfc, tdolap_from_cp2kwfc
 
 def version():
-    print("CA-NAC 1.1.0_beta")
+    print("CA-NAC 1.2.0_beta")
     print("Should you have any question, please contact wbchu@fudan.edu.cn")
     
 def combine(runDirs,bmin_s,bmax_s,obmin,obmax, ispin, ikpt, potim,
@@ -350,6 +355,9 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
     elif SOFTWARE == 'ABACUS':
         phi_i = abacuswfc(waveA)
         phi_j = abacuswfc(waveB)
+    elif SOFTWARE == 'HAMGNNHUGE':
+        phi_i = hamgnnhugewfc(waveA, bmin_s, bmax_s)
+        phi_j = hamgnnhugewfc(waveB, bmin_s, bmax_s)
     
     normalcar_i = dirA + '/NormalCAR'
     normalcar_j = dirB + '/NormalCAR'
@@ -426,6 +434,18 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
         if is_soc:
             identity = np.identity(2, dtype=np.float32)
             SK = np.kron(SK, identity)
+        td_olap = np.einsum('mi, ij, nj -> mn', cio_t.conj(), SK, cio_tdt)
+    elif SOFTWARE == 'HAMGNNHUGE':
+        try:
+            norbitals = phi_i._bands.shape[2]
+            SKSdata = np.load(os.path.join(dirA, 'SKSdata.npy'))
+            SKSindices = np.load(os.path.join(dirA, 'SKSindices.npy'))
+            SKSindptr = np.load(os.path.join(dirA, 'SKSindptr.npy'))
+            SK = csr((SKSdata, SKSindices, SKSindptr), shape=(norbitals, norbitals), dtype=np.float64)
+            SK = SK.toarray()
+        except:
+            raise IOError('Cannot open %s file.' % os.path.join(dirA, 'SKSdata.npy'))
+        print('SK shape:', SK.shape, cio_t.shape, cio_tdt.shape, flush=True)
         td_olap = np.einsum('mi, ij, nj -> mn', cio_t.conj(), SK, cio_tdt)
     
     if OntheflyVerify & is_alle:
