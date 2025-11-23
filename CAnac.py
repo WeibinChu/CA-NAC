@@ -10,9 +10,8 @@ from vaspwfc import vaspwfc
 from aeolap import PawProj_info,ae_aug_olap_martrix,test,realtime_checking
 from spinorb import read_cproj_NormalCar
 
-is_soc = False
-SOFTWARE = 'VASP'    # VASP    | SIESTA          | HAMNET | ABACUS | CP2K
-WAVECAR  = 'WAVECAR' # WAVECAR | Sys.fullBZ.WFSX | ''     | ''     | WAVECAR
+SOFTWARE = 'VASP'  # VASP    | SIESTA          | HAMNET | ABACUS
+WAVECAR  = 'WAVECAR' # WAVECAR | Sys.fullBZ.WFSX | ''     | ''
 if SOFTWARE == 'SIESTA':
     from siestawfc import siestawfc
 elif SOFTWARE == 'HAMNET':
@@ -23,7 +22,7 @@ elif SOFTWARE == 'CP2K':
     from cp2kwfc import cp2kwfc, tdolap_from_cp2kwfc
 
 def version():
-    print("CA-NAC 1.2.0_beta")
+    print("CA-NAC 1.1.0_beta")
     print("Should you have any question, please contact wbchu@fudan.edu.cn")
     
 def combine(runDirs,bmin_s,bmax_s,obmin,obmax, ispin, ikpt, potim,
