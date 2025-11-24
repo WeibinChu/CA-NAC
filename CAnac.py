@@ -3,6 +3,7 @@
 import os
 import sys
 import numpy as np
+from scipy.sparse import csr_matrix as csr
 import multiprocessing
 from time import time
 import mod_hungarian as hungarian
@@ -10,17 +11,23 @@ from vaspwfc import vaspwfc
 from aeolap import PawProj_info,ae_aug_olap_martrix,test,realtime_checking
 from spinorb import read_cproj_NormalCar
 
-SOFTWARE = 'VASP'  # VASP    | SIESTA          | HAMNET | ABACUS
-WAVECAR  = 'WAVECAR' # WAVECAR | Sys.fullBZ.WFSX | ''     | ''
+is_soc = False
+SOFTWARE = 'VASP'    # VASP    | SIESTA          | HAMNET | HAMGNNHUGE | ABACUS | CP2K
+WAVECAR  = 'WAVECAR' # WAVECAR | Sys.fullBZ.WFSX | ''     | ''         |''      | WAVECAR
+
 if SOFTWARE == 'SIESTA':
     from siestawfc import siestawfc
 elif SOFTWARE == 'HAMNET':
     from hamnetwfc import hamnetwfc
+elif SOFTWARE == 'HAMGNNHUGE':
+    from hamgnnhugewfc import hamgnnhugewfc
 elif SOFTWARE == 'ABACUS':
     from abacuswfc import abacuswfc
+elif SOFTWARE == 'CP2K':
+    from cp2kwfc import cp2kwfc, tdolap_from_cp2kwfc
 
 def version():
-    print("CA-NAC 1.1.0_beta")
+    print("CA-NAC 1.2.0_beta")
     print("Should you have any question, please contact wbchu@fudan.edu.cn")
     
 def combine(runDirs,bmin_s,bmax_s,obmin,obmax, ispin, ikpt, potim,
@@ -348,6 +355,9 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
     elif SOFTWARE == 'ABACUS':
         phi_i = abacuswfc(waveA)
         phi_j = abacuswfc(waveB)
+    elif SOFTWARE == 'HAMGNNHUGE':
+        phi_i = hamgnnhugewfc(waveA, bmin_s, bmax_s)
+        phi_j = hamgnnhugewfc(waveB, bmin_s, bmax_s)
     
     normalcar_i = dirA + '/NormalCAR'
     normalcar_j = dirB + '/NormalCAR'
@@ -421,7 +431,22 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
             SK = np.load(os.path.join(dirA, 'tdoverlap.npy'))
         except:
             raise IOError('Cannot open %s file.' % os.path.join(dirA, 'tdoverlap.npy'))
-        td_olap = np.einsum('mi, ij, nj -> mn', cio_t.conj(), SK, cio_t)
+        if is_soc:
+            identity = np.identity(2, dtype=np.float32)
+            SK = np.kron(SK, identity)
+        td_olap = np.einsum('mi, ij, nj -> mn', cio_t.conj(), SK, cio_tdt)
+    elif SOFTWARE == 'HAMGNNHUGE':
+        try:
+            norbitals = phi_i._bands.shape[2]
+            SKSdata = np.load(os.path.join(dirA, 'SKSdata.npy'))
+            SKSindices = np.load(os.path.join(dirA, 'SKSindices.npy'))
+            SKSindptr = np.load(os.path.join(dirA, 'SKSindptr.npy'))
+            SK = csr((SKSdata, SKSindices, SKSindptr), shape=(norbitals, norbitals), dtype=np.float64)
+            SK = SK.toarray()
+        except:
+            raise IOError('Cannot open %s file.' % os.path.join(dirA, 'SKSdata.npy'))
+        print('SK shape:', SK.shape, cio_t.shape, cio_tdt.shape, flush=True)
+        td_olap = np.einsum('mi, ij, nj -> mn', cio_t.conj(), SK, cio_tdt)
     
     if OntheflyVerify & is_alle:
         S_olap = np.dot(cio_t.conj(),np.transpose(cio_t))
@@ -449,15 +474,17 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
     EnT = phi_i._bands[ispin-1, ikpt-1, bmin_s-1:bmax_s]
     
     # close the wavecar
-    phi_i._wfc.close()
-    phi_j._wfc.close()
+    if SOFTWARE == 'VASP' or SOFTWARE == 'SIESTA':
+        phi_i._wfc.close()
+        phi_j._wfc.close()
     
 
     return EnT, td_olap
 
 def parallel_tdolap_calc(dirA, dirB, checking_dict, nproc=None, is_alle=False, 
                       bmin_s=None, bmax_s=None,omin=None, omax=None,
-                      ikpt=1, ispin=1, icor=1 ):
+                      ikpt=1, ispin=1, icor=1,
+                      proj_name=None, cp2k_outfile=None ):
     '''
     Parallel calculation of TD overlaps using python multiprocessing package.
     '''
@@ -476,12 +503,16 @@ def parallel_tdolap_calc(dirA, dirB, checking_dict, nproc=None, is_alle=False,
         paw_info=None
  
     for w1, w2 in zip(dirA, dirB):
-       
-        res = pool.apply_async(tdolap_from_vaspwfc, (w1, w2, paw_info, 
-                                                     is_alle, bmin_s, bmax_s, 
-                                                     omin, omax, 
-                                                     ikpt, ispin, icor, 
-                                      checking_dict['onthefly_verification']))
+        if SOFTWARE == 'CP2K':       
+            res = pool.apply_async(tdolap_from_cp2kwfc, (w1, w2, proj_name, 
+                                                         cp2k_outfile, bmin_s, bmax_s, 
+                                                         ispin))
+        else:
+            res = pool.apply_async(tdolap_from_vaspwfc, (w1, w2, paw_info, 
+                                                         is_alle, bmin_s, bmax_s, 
+                                                         omin, omax, 
+                                                         ikpt, ispin, icor, 
+                                          checking_dict['onthefly_verification']))
         results.append(res)
 
     for ii in range(len(dirA)):
@@ -597,7 +628,8 @@ def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False,
              is_reorder=False, is_alle=False, is_real=False, is_combine=False,
              iformat='HFNAMD', ibmin=None, ibmax=None,
              bmin_s=None, bmax_s=None,omin=None, omax=None,
-             ikpt=1, ispin=1, icor=1, potim=1.0):
+             ikpt=1, ispin=1, icor=1, potim=1.0,
+             proj_name=None, cp2k_outfile=None):
     
     
     if is_alle == True and is_gamma == True:
@@ -616,16 +648,26 @@ def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False,
         print ("Checking Files Integrity")
         DirA,DirB,completed_flag = task_checking(runDirs, omin, omax, 
                                                  ispin, ikpt, is_alle)
+    else:
+        print ("Files Integrity is Not Checked")
+        DirA=(Dirs[:-1])
+        DirB=(Dirs[1:])
+        completed_flag = False 
     
+    if not skip_TDolap_calc:
         if DirA is not None:
             print ("Starting TDolap Calculations")
             parallel_tdolap_calc(DirA, DirB, checking_dict, nproc, is_alle, 
                                  bmin_s, bmax_s, omin, omax, 
-                                 ikpt, ispin, icor)
-            DirA,DirB,completed_flag = task_checking(runDirs, omin, omax, 
+                                 ikpt, ispin, icor,
+                                 proj_name, cp2k_outfile)
+
+            if not skip_file_verification:
+                print ("Checking Files Integrity")
+                DirA,DirB,completed_flag = task_checking(runDirs, omin, omax, 
                                                      ispin, ikpt, is_alle)
     
-        if completed_flag: 
+        if completed_flag or skip_file_verification: 
             print ("Starting CA-NAC")
             parallel_nac_calc(runDirs, nproc, is_gamma, is_reorder, is_alle, 
                               bmin_s, bmax_s, omin, omax, 
@@ -650,7 +692,7 @@ def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False,
         else:
             print("WAVECAR generation are not finished" \
                   "or TDolap files are incomplete" ) 
-    
+ 
     if skip_TDolap_calc:
         if skip_NAC_calc:
             if is_combine:
@@ -683,8 +725,8 @@ def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False,
 
     
 if __name__ == '__main__':
-    T_start = 1 
-    T_end   = 1000 
+    T_start = 0 
+    T_end   = 3 
     
 # NAC calculations and Genration of standard input for HFNAMD or PYXAID
 # bmin and bmax are actual band index in VASP, 
@@ -692,8 +734,8 @@ if __name__ == '__main__':
     is_combine = True   #If generate standard input for HFNAMD or PYXAID
     #iformat = "PYXAID" 
     iformat = "HFNAMD"
-    bmin    = 166       
-    bmax    = 186         
+    bmin    = 2973       
+    bmax    = 2981        
     potim   = 1         # Nuclear timestep, unit: fs 
     
 # Time-overlap 
@@ -703,17 +745,17 @@ if __name__ == '__main__':
 # Or when you turn on the state reordering  
 # bmin_stored = bmin - 10
 # bmax_stored = bmax + 10
-    bmin_stored    = 166       
-    bmax_stored    = 186       
+    bmin_stored    = 2973       
+    bmax_stored    = 2981      
     
 
-    nproc   = 4         # Number of cores used in parallelization
+    nproc   = 1         # Number of cores used in parallelization
     
-    is_gamma_version  = False  # Which VASP version is used!!  
+    is_gamma_version  = True  # Which VASP version is used!!  
                                # vasp_std False  vasp_gam True
     is_reorder= False    # If turn on State Reordering  
                         # True (use with care) or False
-    is_alle   = True    # If use All-electron wavefunction 
+    is_alle   = False    # If use All-electron wavefunction 
                         # (require NORMALCAR) True or False
     is_real   = True    # If rotate wavefunction to ensure NAC is real value.
                         # True (Mandatory for HFNAMD and PYXAID) or False.
@@ -726,7 +768,10 @@ if __name__ == '__main__':
 # Don't forget the forward slash at the end.
     Dirs = ['./%04d/' % (ii + 1) for ii in range(T_start-1, T_end)] 
 
-
+# For CP2K    
+    proj_name = '79Na2O-2NaCl-20CaO-100SiO2-32PbS'
+    cp2k_outfile = 'output.out'
+    
 
 # Don't change anything below if you are new to CA-NAC    
 #########################################################################   
@@ -736,7 +781,7 @@ if __name__ == '__main__':
     omin    = bmin_stored
     omax    = bmax_stored
 
-    skip_file_verification  = False
+    skip_file_verification  = True
     skip_TDolap_calc = False 
     skip_NAC_calc = False
     onthefly_verification  = True
@@ -751,7 +796,8 @@ if __name__ == '__main__':
              is_gamma_version, is_reorder, is_alle, is_real, is_combine,
              iformat, bmin, bmax,
              bmin_stored, bmax_stored, omin, omax,
-             ikpt, ispin, icor, potim )
+             ikpt, ispin, icor, potim,
+             proj_name, cp2k_outfile )
 
 
 

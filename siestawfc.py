@@ -1,6 +1,8 @@
 import numpy as np
 import os
 
+# gamma point is not the first kpoint! See NON_TRIMMED_KP_LIST
+
 # int = np.int32 = integer(kind=4)
 # float = np.float64 = real(kind=8)
 
@@ -41,6 +43,17 @@ class siestawfc(object):
         psi(:,:)
       End Loop over bands
     Loop over k-points
+
+  @property: _wfc: BufferReader. file handle.
+  @property: _nkpts: int.
+  @property: _lgam: bool.
+  @property: _nspin: 1|2|4
+  @property: _nuotot: int. number of total orbital in unit cell.
+  @property: _nbands: int. number of bands. should eq to _nuotot.
+  @property: _nplws: list[int]. shape: (nkpt, nuotot). wfc coefficient number for each kpoint.
+  @property: _kvecs: ndarray[float64]. shape: (nkpt, 3).
+  @property: _bands: ndarray[float64]. shape: (nspin, nkpt, nbands). band energy.
+  @property: _rec: list[int]. shape: (nspin, nkpt, nbands). record postion. wfc coefficients stored in float32.
   '''
 
   def __init__(self, fnm='WFSX', lgamma=False) -> None:
@@ -115,10 +128,10 @@ class siestawfc(object):
           pos = self._wfc.tell()
           length, = np.fromfile(self._wfc, dtype=np.int32, count=1)
           dumpR.append(pos)
-          self._wfc.seek(pos + length + 8) # length = 4*self._nuotot*self._nspin
+          self._wfc.seek(pos + length + 8) # length = 4*self._nuotot*(1|2)
         self._bands[iispin][iik] = dumpB
         self._recs[iispin][iik] = dumpR
-    self._bands = np.array(self._bands, dtype=np.float32) * ry2ev
+    self._bands = np.array(self._bands, dtype=np.float64)
 
   def get_ps_wfc(self, *args, **kwargs):
     '''
@@ -139,12 +152,16 @@ class siestawfc(object):
     rec = self.whereRec(ispin, ikpt, iband)
     self._wfc.seek(rec)
 
-    cg = fromfortran(self._wfc, dtype=np.float32, count=self._nuotot*self._nspin)[0]. \
-          reshape(-1, self._nspin).swapaxes(0, 1).flatten()
+    if self.isGammaWfc():
+      coe = fromfortran(self._wfc, dtype=np.float32, count=self._nuotot)
+    else:
+      coe = fromfortran(self._wfc, dtype=np.float32, count=self._nuotot*2)
+      coe = coe[0::2] + 1j * coe[1::2]
+    cg = coe
 
     # cg = np.asarray(dump, dtype=np.complex128)
-    if norm:
-        cg /= np.linalg.norm(cg)
+    # if norm:
+    #     cg /= np.linalg.norm(cg)
     return cg
 
   def whereRec(self, ispin=1, ikpt=1, iband=1):
@@ -163,7 +180,10 @@ class siestawfc(object):
     assert 1 <= iband <= self._nbands, 'Invalid band index!'
 
 if __name__ == '__main__':
-  wfc = siestawfc(r'C:\Users\zhang\UserSpace\Github\HamNet\utils\Cs2BBX6.fullBZ.WFSX')
-
-
-    
+  SK = np.load(r'C:\Users\zhang\UserSpace\Github\CA-NAC\tdoverlap.npy')
+  wfc = siestawfc(r'C:\Users\zhang\UserSpace\Github\CA-NAC\TiO2.fullBZ.WFSX')
+  wfc_ = siestawfc(r'C:\Users\zhang\UserSpace\Github\CA-NAC\TiO2.fullBZ2.WFSX')
+  wfc1 = wfc.readBandCoeff(1, 8, 192)
+  wfc2 = wfc_.readBandCoeff(1, 8, 192)
+  td_olap = np.einsum('i, ij, j', wfc1.conj(), SK, wfc2)
+  print(td_olap)
