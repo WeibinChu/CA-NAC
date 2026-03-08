@@ -503,10 +503,6 @@ def parallel_tdolap_calc(dirA, dirB, checking_dict, nproc=None, is_alle=False,
     import multiprocessing
 
     nproc = multiprocessing.cpu_count() if nproc is None else nproc
-    pool = multiprocessing.Pool(processes=nproc)
-    results = []
-
-
 
     if is_alle:
         from aeolap import PawProj_info, test
@@ -518,38 +514,39 @@ def parallel_tdolap_calc(dirA, dirB, checking_dict, nproc=None, is_alle=False,
     if software == 'CP2K':
         from cp2kwfc import tdolap_from_cp2kwfc
 
-    for w1, w2 in zip(dirA, dirB):
-        if software == 'CP2K':
-            res = pool.apply_async(tdolap_from_cp2kwfc, (w1, w2, proj_name,
-                                                         cp2k_outfile, bmin_s, bmax_s,
-                                                         ispin))
-        else:
-            res = pool.apply_async(tdolap_from_vaspwfc, (w1, w2, paw_info,
-                                                         is_alle, bmin_s, bmax_s,
-                                                         omin, omax,
-                                                         ikpt, ispin, icor,
-                                          checking_dict['onthefly_verification'],
-                                          software, wavecar))
-        results.append(res)
+    with multiprocessing.Pool(processes=nproc) as pool:
+        results = []
+        for w1, w2 in zip(dirA, dirB):
+            if software == 'CP2K':
+                res = pool.apply_async(tdolap_from_cp2kwfc, (w1, w2, proj_name,
+                                                             cp2k_outfile, bmin_s, bmax_s,
+                                                             ispin))
+            else:
+                res = pool.apply_async(tdolap_from_vaspwfc, (w1, w2, paw_info,
+                                                             is_alle, bmin_s, bmax_s,
+                                                             omin, omax,
+                                                             ikpt, ispin, icor,
+                                              checking_dict['onthefly_verification'],
+                                              software, wavecar))
+            results.append(res)
 
-    for ii in range(len(dirA)):
+        for ii in range(len(dirA)):
 
-        et, td_olap = results[ii].get()
-        
-        #Writing
-        prefix = dirA[ii]
-        
-        tag_ae='ae' if is_alle else 'ps'
+            et, td_olap = results[ii].get()
 
-        tdolap_filename = prefix + 'tdolap_' + str(omin) + '_' + str(omax) + \
-                            '_' + str(ispin) + '_' + str(ikpt) + '_' + \
-                                tag_ae + '.npy' 
-        tdeig_filename = prefix + 'eig_' + str(omin) + '_' + str(omax) + \
-                             '_' + str(ispin) + '_' + str(ikpt) + '.npy' 
-        
-        
-        np.save(tdeig_filename, et)
-        np.save(tdolap_filename, td_olap)
+            #Writing
+            prefix = dirA[ii]
+
+            tag_ae='ae' if is_alle else 'ps'
+
+            tdolap_filename = prefix + 'tdolap_' + str(omin) + '_' + str(omax) + \
+                                '_' + str(ispin) + '_' + str(ikpt) + '_' + \
+                                    tag_ae + '.npy'
+            tdeig_filename = prefix + 'eig_' + str(omin) + '_' + str(omax) + \
+                                 '_' + str(ispin) + '_' + str(ikpt) + '.npy'
+
+            np.save(tdeig_filename, et)
+            np.save(tdolap_filename, td_olap)
 
 ############################################################
 ############################################################
@@ -565,75 +562,64 @@ def parallel_nac_calc(runDirs, nproc=None,
    
 
     nproc = multiprocessing.cpu_count() if nproc is None else nproc
-    pool = multiprocessing.Pool(processes=nproc)
-    results = []
-   
-     
-    
 
- 
-    for w1 in runDirs[:-1]:
-        res = pool.apply_async(nac_from_tdolap, (w1, omin, omax,
-                                                 ispin, ikpt,
-                                                 is_reorder, is_alle,
-                                                 is_gamma))
-        results.append(res)
+    with multiprocessing.Pool(processes=nproc) as pool:
+        results = []
+        for w1 in runDirs[:-1]:
+            res = pool.apply_async(nac_from_tdolap, (w1, omin, omax,
+                                                     ispin, ikpt,
+                                                     is_reorder, is_alle,
+                                                     is_gamma))
+            results.append(res)
 
-    for ii in range(len(results)):
+        for ii in range(len(results)):
 
-        et, pij, pji, cc1, cc2 ,perm1, perm2 = results[ii].get()
-        
-        
-        
-        if is_reorder:
-            if ii == 0:
-                cc1 = np.ones_like(cc2)
-                perm_cum =np.arange(len(cc2))
-            else:
-                cc2 = reorder_cc(cc2, perm_cum) 
-                cc1 = cc_next.copy()
-                cc2 = cc1 * cc2    
-        
- 
-            et = reorder_eig(et, perm_cum) 
-            pij,pji = reorder_pij(pij, pji, perm_cum) 
-        else:
-            if (icor == 1 or icor == 21) :
+            et, pij, pji, cc1, cc2 ,perm1, perm2 = results[ii].get()
+
+            if is_reorder:
                 if ii == 0:
                     cc1 = np.ones_like(cc2)
+                    perm_cum =np.arange(len(cc2))
                 else:
+                    cc2 = reorder_cc(cc2, perm_cum)
                     cc1 = cc_next.copy()
-                    cc2 = cc1 * cc2    
-        
-        nc = phasecor_apply(pij, pji, cc1, cc2, is_gamma, 
-                            bmin_s, omin, bmax_s - bmin_s + 1) 
-        
-        #Writing
-        prefix = runDirs[ii]
-        
-        tag_ae='ae' if is_alle else 'ps'
-        tag_rd='rd' if is_reorder else ''
-      
-        nac_filename=prefix+'nac_'  + tag_ae + tag_rd + '.npy'
-        eig_filename=prefix+'eig_'  + tag_ae + tag_rd + '.npy'
-        
-        
-        np.save(eig_filename, et)
-        np.save(nac_filename, nc)
+                    cc2 = cc1 * cc2
 
-        
-        
-        
-        cc_next = cc2.copy()
-        
-        if is_reorder:
-           perm_filename=prefix+'perm_'  + tag_ae + tag_rd + '.txt'
-           np.savetxt(perm_filename, perm_cum[np.newaxis, :])
-            
-           perm_t=perm_cum.copy()
-           for i in range(len(perm_t)):
-               perm_t[i]=perm_cum[perm2[i]]
-           perm_cum=perm_t.copy()
+                et = reorder_eig(et, perm_cum)
+                pij,pji = reorder_pij(pij, pji, perm_cum)
+            else:
+                if (icor == 1 or icor == 21) :
+                    if ii == 0:
+                        cc1 = np.ones_like(cc2)
+                    else:
+                        cc1 = cc_next.copy()
+                        cc2 = cc1 * cc2
+
+            nc = phasecor_apply(pij, pji, cc1, cc2, is_gamma,
+                                bmin_s, omin, bmax_s - bmin_s + 1)
+
+            #Writing
+            prefix = runDirs[ii]
+
+            tag_ae='ae' if is_alle else 'ps'
+            tag_rd='rd' if is_reorder else ''
+
+            nac_filename=prefix+'nac_'  + tag_ae + tag_rd + '.npy'
+            eig_filename=prefix+'eig_'  + tag_ae + tag_rd + '.npy'
+
+            np.save(eig_filename, et)
+            np.save(nac_filename, nc)
+
+            cc_next = cc2.copy()
+
+            if is_reorder:
+               perm_filename=prefix+'perm_'  + tag_ae + tag_rd + '.txt'
+               np.savetxt(perm_filename, perm_cum[np.newaxis, :])
+
+               perm_t=perm_cum.copy()
+               for i in range(len(perm_t)):
+                   perm_t[i]=perm_cum[perm2[i]]
+               perm_cum=perm_t.copy()
            
    
 ############################################################
