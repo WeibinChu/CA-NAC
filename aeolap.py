@@ -97,7 +97,7 @@ class PawProj_info(object):
             
             
             #print dif_olap.shape
-            rotate_idx=np.arange(p_tot,dtype=np.int) 
+            rotate_idx=np.arange(p_tot,dtype=np.int_) 
             single_idx=[]
             for i in range(p_tot):
                 if i == 0 and res[0][i]==res[0][i+res[0][i]*2+1]:
@@ -143,7 +143,7 @@ class PawProj_info(object):
         proj_cum=0
         r_idx=[]
         for i in p1.element_idx:
-            r_idx +=(np.array(rotate_idx_tot[i],dtype=np.int)+
+            r_idx +=(np.array(rotate_idx_tot[i],dtype=np.int_)+
                      proj_cum).tolist()
             difq_ii_complete += difq_ii[i].tolist()
             difq_ij_complete += difq_ij[i].tolist()
@@ -173,7 +173,7 @@ def ae_aug_olap_martrix(bmin,bmax,cprojs1,cprojs2,proj_info,
                         nkpts,nbands,ikpt=1,ispin=1):
     
      nbasis=bmax-bmin+1
-     aug_=ispinlap_matrix=np.zeros((nbasis,nbasis),dtype=np.complex)
+     aug_=ispinlap_matrix=np.zeros((nbasis,nbasis),dtype=np.complex128)
      
      index_min=bmin - 1 + nbands * (ikpt - 1) + nbands * nkpts * (ispin - 1)
      index_max=bmax     + nbands * (ikpt - 1) + nbands * nkpts * (ispin - 1)
@@ -210,8 +210,8 @@ def test(bmin=5,bmax=40,dir0='./'):
     nbands= wfc._nbands
     cptwf = wfc.readBandCoeff(iband=bmax, ikpt=ikpt, ispin=ispin)
     
-    wfc_coef = np.zeros([nbasis] + list(cptwf.shape),dtype=np.complex)
-    td_olap = np.zeros((nbasis,nbasis),dtype=np.complex)
+    wfc_coef = np.zeros([nbasis] + list(cptwf.shape),dtype=np.complex128)
+    td_olap = np.zeros((nbasis,nbasis),dtype=np.complex128)
     
     aug_olap=ae_aug_olap_martrix(bmin,bmax,cprojs1,cprojs2,proj,
                                  nkpts,nbands,ikpt,ispin)

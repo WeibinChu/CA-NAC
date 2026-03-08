@@ -155,8 +155,8 @@ def tdolap_from_cp2kwfc(dirA, dirB, proj_name, outfile,
 
 
    
-    cic_t = np.zeros([nbasis] + list(ci_t.shape),dtype=np.complex)
-    cic_tdt = np.zeros([nbasis] + list(ci_t.shape),dtype=np.complex)
+    cic_t = np.zeros([nbasis] + list(ci_t.shape),dtype=np.complex128)
+    cic_tdt = np.zeros([nbasis] + list(ci_t.shape),dtype=np.complex128)
            
     print (cic_t.shape)
     

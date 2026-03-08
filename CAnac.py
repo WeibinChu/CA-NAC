@@ -37,7 +37,7 @@ def combine(runDirs,bmin_s,bmax_s,obmin,obmax, ispin, ikpt, potim,
     Hbar_Ev = 0.6582119
     nbasis = bmax_s - bmin_s + 1
     
-    nac = np.zeros((len(runDirs),nbasis**2),dtype=np.complex)
+    nac = np.zeros((len(runDirs),nbasis**2),dtype=np.complex128)
     eig = np.zeros((len(runDirs),nbasis))
     
     tag_ae = 'ae' if is_alle else 'ps'
@@ -93,12 +93,12 @@ def task_checking(Dirs, obmin, obmax, ispin, ikpt, is_alle):
     tdolap_filename='tdolap_' + str(obmin) + '_' + str(obmax) + '_' + \
                     str(ispin) + '_' + str(ikpt) + '_' + tag_ae + '.npy'
     
-    task_Dirs = np.zeros(len(Dirs), dtype=np.bool)
-    completed_Dirs = np.zeros(len(Dirs), dtype=np.bool)
+    task_Dirs = np.zeros(len(Dirs), dtype=np.bool_)
+    completed_Dirs = np.zeros(len(Dirs), dtype=np.bool_)
     
-    waveA_Dirs = np.zeros(len(Dirs), dtype=np.bool)
-    waveB_Dirs = np.zeros(len(Dirs), dtype=np.bool)
-    tdolap_Dirs = np.zeros(len(Dirs), dtype=np.bool)
+    waveA_Dirs = np.zeros(len(Dirs), dtype=np.bool_)
+    waveB_Dirs = np.zeros(len(Dirs), dtype=np.bool_)
+    tdolap_Dirs = np.zeros(len(Dirs), dtype=np.bool_)
     
     Dirs=np.array(Dirs)
     DirsA=None
@@ -163,9 +163,9 @@ def orthogon(cic):
     
     S = np.dot(cic.conj(),cic.T)
 
-    Dsqrt= np.zeros_like(S, dtype=np.complex)
-    T = np.zeros_like(S, dtype=np.complex)
-    cio = np.zeros_like(cic, dtype=np.complex)
+    Dsqrt= np.zeros_like(S, dtype=np.complex128)
+    T = np.zeros_like(S, dtype=np.complex128)
+    cio = np.zeros_like(cic, dtype=np.complex128)
     
     D,V=np.linalg.eig(S)
     for ii in range(np.size(S,0)):
@@ -289,8 +289,8 @@ def nac_from_tdolap(dirA, omin, omax, ispin=1, ikpt=1,
         #print(np.abs(td_olap))
         reorder_cost=np.real(td_olap.conj()*td_olap)
         res = hungarian.maximize(reorder_cost)
-        perm1=np.array(res,dtype=np.int)[:,0]
-        perm2=np.array(res,dtype=np.int)[:,1]
+        perm1=np.array(res,dtype=np.int_)[:,0]
+        perm2=np.array(res,dtype=np.int_)[:,1]
         td_olap_reorded = reorder_td_olap(td_olap,perm1,perm2)
         cc1,cc2 =phase_from_tdolap(td_olap_reorded,is_gamma)
 #        t2 = time()
@@ -380,11 +380,11 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
     nbands=phi_i._nbands
 
     ci_t   = phi_i.readBandCoeff(ispin, ikpt, omax, norm=False)
-    cic_t = np.zeros([obasis] + list(ci_t.shape),dtype=np.complex)
-    cic_tdt = np.zeros([obasis] + list(ci_t.shape),dtype=np.complex)
+    cic_t = np.zeros([obasis] + list(ci_t.shape),dtype=np.complex128)
+    cic_tdt = np.zeros([obasis] + list(ci_t.shape),dtype=np.complex128)
            
-    cio_t = np.zeros([obasis] + list(ci_t.shape),dtype=np.complex)
-    cio_tdt = np.zeros([obasis] + list(ci_t.shape),dtype=np.complex)
+    cio_t = np.zeros([obasis] + list(ci_t.shape),dtype=np.complex128)
+    cio_tdt = np.zeros([obasis] + list(ci_t.shape),dtype=np.complex128)
     
 
 
