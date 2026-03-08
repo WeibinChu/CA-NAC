@@ -160,7 +160,7 @@ def task_checking(Dirs, obmin, obmax, ispin, ikpt, is_alle, wavecar='WAVECAR'):
                              (Dirs[1:])[~tdolap_Dirs[:-1] & ~waveB_Dirs[:-1]])
         print ("%5d TDolaps to be calculated" \
                %task_Dirs[task_Dirs==True].shape)
-        print ("%5d WAVECARs to be calculated (VASP)" %wav_missing.shape[0] )
+        print ("%5d wavefunction files missing" %wav_missing.shape[0] )
         if wav_missing.shape[0] < 10:
             print("Please provide WAVECAR for these directories:", wav_missing)
     
@@ -456,7 +456,7 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
         print('SK shape:', SK.shape, cio_t.shape, cio_tdt.shape, flush=True)
         td_olap = np.einsum('mi, ij, nj -> mn', cio_t.conj(), SK, cio_tdt)
     
-    if OntheflyVerify & is_alle:
+    if OntheflyVerify and is_alle:
         from aeolap import ae_aug_olap_martrix, realtime_checking
         S_olap = np.dot(cio_t.conj(),np.transpose(cio_t))
         S_aug_olap = ae_aug_olap_martrix(bmin_s, bmax_s, cprojs1, cprojs1,
@@ -515,9 +515,11 @@ def parallel_tdolap_calc(dirA, dirB, checking_dict, nproc=None, is_alle=False,
     else:
         paw_info=None
 
+    if software == 'CP2K':
+        from cp2kwfc import tdolap_from_cp2kwfc
+
     for w1, w2 in zip(dirA, dirB):
         if software == 'CP2K':
-            from cp2kwfc import tdolap_from_cp2kwfc
             res = pool.apply_async(tdolap_from_cp2kwfc, (w1, w2, proj_name,
                                                          cp2k_outfile, bmin_s, bmax_s,
                                                          ispin))
@@ -692,7 +694,7 @@ def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False,
 
     if not skip_NAC_calc:
         if not ready:
-            print("WAVECAR generation are not finished" \
+            print("Wavefunction generation is not finished " \
                   "or TDolap files are incomplete" )
             return
         print ("Starting CA-NAC")
