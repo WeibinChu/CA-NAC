@@ -41,7 +41,7 @@ def _get_wfc_class(software):
     return cls
 
 def version():
-    print("CA-NAC 1.2.0_beta")
+    print("CA-NAC 1.3.0")
     print("Should you have any question, please contact wbchu@fudan.edu.cn")
     
 def combine(runDirs,bmin_s,bmax_s,obmin,obmax, ispin, ikpt, potim,
@@ -633,11 +633,20 @@ def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False,
              bmin_s=None, bmax_s=None,omin=None, omax=None,
              ikpt=1, ispin=1, icor=1, potim=1.0,
              proj_name=None, cp2k_outfile=None,
-             software='VASP', wavecar='WAVECAR'):
-    
-    
+             software=None, wavecar=None):
+
+
     if len(runDirs) < 2:
         raise ValueError("runDirs must contain at least 2 directories")
+
+    if software is None or wavecar is None:
+        print("Warning: 'software' and/or 'wavecar' not provided.")
+        print("  Please set them in input.py, e.g.:")
+        print("    software = 'VASP'    # VASP | SIESTA | HAMNET | HAMGNNHUGE | ABACUS | CP2K")
+        print("    wavecar  = 'WAVECAR' # WAVECAR | Sys.fullBZ.WFSX | etc.")
+        print("  Using defaults: software='VASP', wavecar='WAVECAR'")
+        software = software or 'VASP'
+        wavecar = wavecar or 'WAVECAR'
 
     if is_alle == True and is_gamma == True:
         print("Currently, all-electron NAC" \
