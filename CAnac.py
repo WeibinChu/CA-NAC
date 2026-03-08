@@ -636,94 +636,69 @@ def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False,
         print("Currently, all-electron NAC" \
               " does not support gamma-version WAVECAR")
         sys.exit(0)
-  
+
     skip_file_verification  = checking_dict['skip_file_verification']
     skip_TDolap_calc = checking_dict['skip_TDolap_calc']
     skip_NAC_calc = checking_dict['skip_NAC_calc']
     onthefly_verification  = checking_dict['onthefly_verification']
-    
+
     version()
-    
-    if not skip_file_verification:
-        print ("Checking Files Integrity")
-        DirA,DirB,completed_flag = task_checking(runDirs, omin, omax, 
-                                                 ispin, ikpt, is_alle)
-    else:
+
+    # --- Stage 1: determine which directory pairs need TDolap ---
+    if skip_file_verification:
         print ("Files Integrity is Not Checked")
-        DirA=(runDirs[:-1])
-        DirB=(runDirs[1:])
-        completed_flag = False 
-    
-    if not skip_TDolap_calc:
-        if DirA is not None:
-            print ("Starting TDolap Calculations")
-            parallel_tdolap_calc(DirA, DirB, checking_dict, nproc, is_alle, 
-                                 bmin_s, bmax_s, omin, omax, 
-                                 ikpt, ispin, icor,
-                                 proj_name, cp2k_outfile)
+        DirA = runDirs[:-1]
+        DirB = runDirs[1:]
+        all_complete = False
+    else:
+        print ("Checking Files Integrity")
+        DirA,DirB,all_complete = task_checking(runDirs, omin, omax,
+                                                 ispin, ikpt, is_alle)
 
-            if not skip_file_verification:
-                print ("Checking Files Integrity")
-                DirA,DirB,completed_flag = task_checking(runDirs, omin, omax, 
-                                                     ispin, ikpt, is_alle)
-    
-        if completed_flag or skip_file_verification: 
-            print ("Starting CA-NAC")
-            parallel_nac_calc(runDirs, nproc, is_gamma, is_reorder, is_alle, 
-                              bmin_s, bmax_s, omin, omax, 
-                              ikpt, ispin, icor)
-            print ("CA-NAC Calculations is done")
-            if is_combine:
-                print ("Generating Standard Input for ", iformat)
-                combine(runDirs, bmin_s, bmax_s, ibmin, ibmax, 
-                        ispin, ikpt, potim, 
-                        is_alle, is_reorder, is_real,iformat)
-                if is_reorder:
-                    print("The state tracking( is_reorder = True) is turned" \
-                          " on, please check the reordering carefully")
-                    reorder_verification(runDirs, is_alle)
-                if not is_real:
-                    print("The current NACs are complex value" \
-                          "(is_real = False), which are not supported by" \
-                          " Hefei-NAMD and PYXAID(default integrator)")
-                    print("Please be aware of that!!!")
+    # --- Stage 2: compute TDolap for incomplete pairs ---
+    if not skip_TDolap_calc and DirA is not None:
+        print ("Starting TDolap Calculations")
+        parallel_tdolap_calc(DirA, DirB, checking_dict, nproc, is_alle,
+                             bmin_s, bmax_s, omin, omax,
+                             ikpt, ispin, icor,
+                             proj_name, cp2k_outfile)
 
-        
-        else:
+        if not skip_file_verification:
+            print ("Checking Files Integrity")
+            DirA,DirB,all_complete = task_checking(runDirs, omin, omax,
+                                                 ispin, ikpt, is_alle)
+
+    # --- Stage 3: NAC extraction (requires all TDolaps) ---
+    ready = all_complete or skip_file_verification
+
+    if not skip_NAC_calc:
+        if not ready:
             print("WAVECAR generation are not finished" \
-                  "or TDolap files are incomplete" ) 
- 
-    if skip_TDolap_calc:
-        if skip_NAC_calc:
-            if is_combine:
-                print ("Generating Standard Input for ", iformat)
-                combine(runDirs, bmin_s, bmax_s, ibmin, ibmax, 
-                        ispin, ikpt, potim, 
-                        is_alle, is_reorder, is_real, iformat)
-                if is_reorder:
-                    reorder_verification(runDirs, is_alle)
-        else:
-            print ("Starting CA-NAC")
-            parallel_nac_calc(runDirs, nproc, is_gamma, is_reorder, is_alle, 
-                              bmin_s, bmax_s, omin, omax, 
-                              ikpt, ispin, icor)
-            print ("CA-NAC Calculations is done")
-            if is_combine:
-                print ("Generating Standard Input for ", iformat)
-                combine(runDirs, bmin_s, bmax_s, ibmin, ibmax, 
-                        ispin, ikpt, potim, 
-                        is_alle, is_reorder, is_real,iformat)
-                if is_reorder:
-                    print("The state tracking(is_reorder = True) is turned" \
-                          " on, please check the reordering carefully")
-                    reorder_verification(runDirs, is_alle)
-                if not is_real:
-                    print("The current NACs are complex value" \
-                          "(is_real = False), which are not supported by" \
-                          " Hefei-NAMD and PYXAID(default integrator)")
-                    print("Please be aware of that!!!")
+                  "or TDolap files are incomplete" )
+            return
+        print ("Starting CA-NAC")
+        parallel_nac_calc(runDirs, nproc, is_gamma, is_reorder, is_alle,
+                          bmin_s, bmax_s, omin, omax,
+                          ikpt, ispin, icor)
+        print ("CA-NAC Calculations is done")
 
-    
+    # --- Stage 4: combine output for HFNAMD or PYXAID ---
+    if is_combine:
+        print ("Generating Standard Input for ", iformat)
+        combine(runDirs, bmin_s, bmax_s, ibmin, ibmax,
+                ispin, ikpt, potim,
+                is_alle, is_reorder, is_real, iformat)
+        if is_reorder:
+            print("The state tracking( is_reorder = True) is turned" \
+                  " on, please check the reordering carefully")
+            reorder_verification(runDirs, is_alle)
+        if not is_real:
+            print("The current NACs are complex value" \
+                  "(is_real = False), which are not supported by" \
+                  " Hefei-NAMD and PYXAID(default integrator)")
+            print("Please be aware of that!!!")
+
+
 if __name__ == '__main__':
     T_start = 0 
     T_end   = 3 
