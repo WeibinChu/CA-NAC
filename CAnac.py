@@ -650,8 +650,8 @@ def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False,
                                                  ispin, ikpt, is_alle)
     else:
         print ("Files Integrity is Not Checked")
-        DirA=(Dirs[:-1])
-        DirB=(Dirs[1:])
+        DirA=(runDirs[:-1])
+        DirB=(runDirs[1:])
         completed_flag = False 
     
     if not skip_TDolap_calc:
