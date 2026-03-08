@@ -162,7 +162,7 @@ def task_checking(Dirs, obmin, obmax, ispin, ikpt, is_alle, wavecar='WAVECAR'):
                %task_Dirs[task_Dirs==True].shape)
         print ("%5d wavefunction files missing" %wav_missing.shape[0] )
         if wav_missing.shape[0] < 10:
-            print("Please provide WAVECAR for these directories:", wav_missing)
+            print("Please provide wavefunction files for these directories:", wav_missing)
     
     if True in task_Dirs:
         DirsA=(Dirs[:-1])[task_Dirs[:-1]]
@@ -636,6 +636,9 @@ def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False,
              software='VASP', wavecar='WAVECAR'):
     
     
+    if len(runDirs) < 2:
+        raise ValueError("runDirs must contain at least 2 directories")
+
     if is_alle == True and is_gamma == True:
         print("Currently, all-electron NAC" \
               " does not support gamma-version WAVECAR")
@@ -644,7 +647,6 @@ def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False,
     skip_file_verification  = checking_dict['skip_file_verification']
     skip_TDolap_calc = checking_dict['skip_TDolap_calc']
     skip_NAC_calc = checking_dict['skip_NAC_calc']
-    onthefly_verification  = checking_dict['onthefly_verification']
 
     version()
 
