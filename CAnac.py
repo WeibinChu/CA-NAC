@@ -7,24 +7,38 @@ from scipy.sparse import csr_matrix as csr
 import multiprocessing
 from time import time
 import mod_hungarian as hungarian
-from vaspwfc import vaspwfc
-from aeolap import PawProj_info,ae_aug_olap_martrix,test,realtime_checking
-from spinorb import read_cproj_NormalCar
 
 is_soc = False
-SOFTWARE = 'VASP'    # VASP    | SIESTA          | HAMNET | HAMGNNHUGE | ABACUS | CP2K
-WAVECAR  = 'WAVECAR' # WAVECAR | Sys.fullBZ.WFSX | ''     | ''         |''      | WAVECAR
 
-if SOFTWARE == 'SIESTA':
-    from siestawfc import siestawfc
-elif SOFTWARE == 'HAMNET':
-    from hamnetwfc import hamnetwfc
-elif SOFTWARE == 'HAMGNNHUGE':
-    from hamgnnhugewfc import hamgnnhugewfc
-elif SOFTWARE == 'ABACUS':
-    from abacuswfc import abacuswfc
-elif SOFTWARE == 'CP2K':
-    from cp2kwfc import cp2kwfc, tdolap_from_cp2kwfc
+# Backend wavefunction parsers — keyed by software value.
+# Populated lazily by _get_wfc_class() on first use.
+_WFC_CLASSES = {}
+
+def _get_wfc_class(software):
+    """Return the wavefunction parser class for the given backend.
+
+    Imports are deferred so that only the needed backend must be installed.
+    """
+    if software in _WFC_CLASSES:
+        return _WFC_CLASSES[software]
+
+    if software == 'VASP':
+        from vaspwfc import vaspwfc as cls
+    elif software == 'SIESTA':
+        from siestawfc import siestawfc as cls
+    elif software == 'HAMNET':
+        from hamnetwfc import hamnetwfc as cls
+    elif software == 'HAMGNNHUGE':
+        from hamgnnhugewfc import hamgnnhugewfc as cls
+    elif software == 'ABACUS':
+        from abacuswfc import abacuswfc as cls
+    elif software == 'CP2K':
+        from cp2kwfc import cp2kwfc as cls
+    else:
+        raise ValueError("Unknown SOFTWARE backend: %s" % software)
+
+    _WFC_CLASSES[software] = cls
+    return cls
 
 def version():
     print("CA-NAC 1.2.0_beta")
@@ -86,7 +100,7 @@ def combine(runDirs,bmin_s,bmax_s,obmin,obmax, ispin, ikpt, potim,
         np.savetxt(eig_out_filename,eig[:-1,:]) 
     
 
-def task_checking(Dirs, obmin, obmax, ispin, ikpt, is_alle):
+def task_checking(Dirs, obmin, obmax, ispin, ikpt, is_alle, wavecar='WAVECAR'):
     
     t1 = time()
     tag_ae='ae' if is_alle else 'ps'
@@ -109,7 +123,7 @@ def task_checking(Dirs, obmin, obmax, ispin, ikpt, is_alle):
         if os.path.exists(rundir+tdolap_filename):  
             tdolap_Dirs[i] = True
             
-        if os.path.exists(rundir+WAVECAR):
+        if os.path.exists(rundir+wavecar):
             waveA_Dirs[i] = True
             if i>0:
                 waveB_Dirs[i-1] = True 
@@ -319,17 +333,18 @@ def nac_from_tdolap(dirA, omin, omax, ispin=1, ikpt=1,
     
     
 def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
-                     bmin_s=None, bmax_s=None, omin=None, omax=None, 
-                     ikpt=1, ispin=1, icor=1, OntheflyVerify = True):
+                     bmin_s=None, bmax_s=None, omin=None, omax=None,
+                     ikpt=1, ispin=1, icor=1, OntheflyVerify = True,
+                     software='VASP', wavecar='WAVECAR'):
     '''
     Calculate Nonadiabatic Couplings (NAC) from two WAVECARs
-    <psi_i(t)| (psi_j(t+dt))> 
-    
+    <psi_i(t)| (psi_j(t+dt))>
+
     inputs:
         waveA:  path of WAVECAR A
         waveB:  path of WAVECAR B
         gamma:  gamma version wavecar
-        dt:     ionic time step, in [fs]          
+        dt:     ionic time step, in [fs]
         ikpt:   k-point index, starting from 1 to NKPTS
         ispin:  spin index, 1 or 2
 
@@ -339,25 +354,17 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
     !!!! Now, It is much faster than fortran code :)         !!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     '''
-    
-    waveA=dirA+WAVECAR
-    waveB=dirB+WAVECAR
 
-    if SOFTWARE == 'VASP':
-        phi_i = vaspwfc(waveA)      # wavecar at t
-        phi_j = vaspwfc(waveB)      # wavecar at t + dt
-    elif SOFTWARE == 'SIESTA':
-        phi_i = siestawfc(waveA)
-        phi_j = siestawfc(waveB)
-    elif SOFTWARE  == 'HAMNET':
-        phi_i = hamnetwfc(waveA)
-        phi_j = hamnetwfc(waveB)
-    elif SOFTWARE == 'ABACUS':
-        phi_i = abacuswfc(waveA)
-        phi_j = abacuswfc(waveB)
-    elif SOFTWARE == 'HAMGNNHUGE':
-        phi_i = hamgnnhugewfc(waveA, bmin_s, bmax_s)
-        phi_j = hamgnnhugewfc(waveB, bmin_s, bmax_s)
+    waveA=dirA+wavecar
+    waveB=dirB+wavecar
+
+    wfc_cls = _get_wfc_class(software)
+    if software == 'HAMGNNHUGE':
+        phi_i = wfc_cls(waveA, bmin_s, bmax_s)
+        phi_j = wfc_cls(waveB, bmin_s, bmax_s)
+    else:
+        phi_i = wfc_cls(waveA)
+        phi_j = wfc_cls(waveB)
     
     normalcar_i = dirA + '/NormalCAR'
     normalcar_j = dirB + '/NormalCAR'
@@ -394,10 +401,11 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
     t1 = time()
     
     if is_alle:
+        from spinorb import read_cproj_NormalCar
         cprojs1=read_cproj_NormalCar(normalcar_i)
         cprojs2=read_cproj_NormalCar(normalcar_j)
 
-   
+
     #t2 = time()
     #print '2. Elapsed Time: %.4f [s] in reading croj' % (t2 - t1)
     #t1 = t2
@@ -424,9 +432,9 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
     t1 = t2
 
 
-    if SOFTWARE == 'VASP':
+    if software == 'VASP':
         td_olap=np.dot(cio_t.conj(),np.transpose(cio_tdt)) # shape: (obasis, obasis)
-    elif SOFTWARE == 'SIESTA' or SOFTWARE == 'HAMNET' or SOFTWARE == 'ABACUS':
+    elif software in ('SIESTA', 'HAMNET', 'ABACUS'):
         try:
             SK = np.load(os.path.join(dirA, 'tdoverlap.npy'))
         except:
@@ -435,7 +443,7 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
             identity = np.identity(2, dtype=np.float32)
             SK = np.kron(SK, identity)
         td_olap = np.einsum('mi, ij, nj -> mn', cio_t.conj(), SK, cio_tdt)
-    elif SOFTWARE == 'HAMGNNHUGE':
+    elif software == 'HAMGNNHUGE':
         try:
             norbitals = phi_i._bands.shape[2]
             SKSdata = np.load(os.path.join(dirA, 'SKSdata.npy'))
@@ -449,11 +457,12 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
         td_olap = np.einsum('mi, ij, nj -> mn', cio_t.conj(), SK, cio_tdt)
     
     if OntheflyVerify & is_alle:
+        from aeolap import ae_aug_olap_martrix, realtime_checking
         S_olap = np.dot(cio_t.conj(),np.transpose(cio_t))
-        S_aug_olap = ae_aug_olap_martrix(bmin_s, bmax_s, cprojs1, cprojs1, 
+        S_aug_olap = ae_aug_olap_martrix(bmin_s, bmax_s, cprojs1, cprojs1,
                                          paw_info, nkpts, nbands, ikpt, ispin)
         S_olap = S_olap + S_aug_olap
-        
+
         realtime_checking(S_olap, dirA)
     t2 = time()
     print ('2. Elapsed Time: %.4f [s] in overlap' % (t2 - t1))
@@ -461,7 +470,8 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
 
 
     if is_alle:
-        td_aug_olap=ae_aug_olap_martrix(bmin_s, bmax_s, cprojs1, cprojs2, 
+        from aeolap import ae_aug_olap_martrix
+        td_aug_olap=ae_aug_olap_martrix(bmin_s, bmax_s, cprojs1, cprojs2,
                                         paw_info, nkpts, nbands, ikpt, ispin)
         td_olap = td_olap + td_aug_olap
     
@@ -474,45 +484,50 @@ def tdolap_from_vaspwfc(dirA, dirB, paw_info=None, is_alle=False,
     EnT = phi_i._bands[ispin-1, ikpt-1, bmin_s-1:bmax_s]
     
     # close the wavecar
-    if SOFTWARE == 'VASP' or SOFTWARE == 'SIESTA':
+    if software in ('VASP', 'SIESTA'):
         phi_i._wfc.close()
         phi_j._wfc.close()
     
 
     return EnT, td_olap
 
-def parallel_tdolap_calc(dirA, dirB, checking_dict, nproc=None, is_alle=False, 
+def parallel_tdolap_calc(dirA, dirB, checking_dict, nproc=None, is_alle=False,
                       bmin_s=None, bmax_s=None,omin=None, omax=None,
                       ikpt=1, ispin=1, icor=1,
-                      proj_name=None, cp2k_outfile=None ):
+                      proj_name=None, cp2k_outfile=None,
+                      software='VASP', wavecar='WAVECAR'):
     '''
     Parallel calculation of TD overlaps using python multiprocessing package.
     '''
+
     import multiprocessing
 
     nproc = multiprocessing.cpu_count() if nproc is None else nproc
     pool = multiprocessing.Pool(processes=nproc)
     results = []
-   
-    
-    
+
+
+
     if is_alle:
+        from aeolap import PawProj_info, test
         test(bmin_s, bmax_s, dirA[0])
         paw_info=PawProj_info(dirA[0])
     else:
         paw_info=None
- 
+
     for w1, w2 in zip(dirA, dirB):
-        if SOFTWARE == 'CP2K':       
-            res = pool.apply_async(tdolap_from_cp2kwfc, (w1, w2, proj_name, 
-                                                         cp2k_outfile, bmin_s, bmax_s, 
+        if software == 'CP2K':
+            from cp2kwfc import tdolap_from_cp2kwfc
+            res = pool.apply_async(tdolap_from_cp2kwfc, (w1, w2, proj_name,
+                                                         cp2k_outfile, bmin_s, bmax_s,
                                                          ispin))
         else:
-            res = pool.apply_async(tdolap_from_vaspwfc, (w1, w2, paw_info, 
-                                                         is_alle, bmin_s, bmax_s, 
-                                                         omin, omax, 
-                                                         ikpt, ispin, icor, 
-                                          checking_dict['onthefly_verification']))
+            res = pool.apply_async(tdolap_from_vaspwfc, (w1, w2, paw_info,
+                                                         is_alle, bmin_s, bmax_s,
+                                                         omin, omax,
+                                                         ikpt, ispin, icor,
+                                          checking_dict['onthefly_verification'],
+                                          software, wavecar))
         results.append(res)
 
     for ii in range(len(dirA)):
@@ -624,12 +639,13 @@ def parallel_nac_calc(runDirs, nproc=None,
 
 
 
-def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False, 
+def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False,
              is_reorder=False, is_alle=False, is_real=False, is_combine=False,
              iformat='HFNAMD', ibmin=None, ibmax=None,
              bmin_s=None, bmax_s=None,omin=None, omax=None,
              ikpt=1, ispin=1, icor=1, potim=1.0,
-             proj_name=None, cp2k_outfile=None):
+             proj_name=None, cp2k_outfile=None,
+             software='VASP', wavecar='WAVECAR'):
     
     
     if is_alle == True and is_gamma == True:
@@ -653,7 +669,8 @@ def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False,
     else:
         print ("Checking Files Integrity")
         DirA,DirB,all_complete = task_checking(runDirs, omin, omax,
-                                                 ispin, ikpt, is_alle)
+                                                 ispin, ikpt, is_alle,
+                                                 wavecar)
 
     # --- Stage 2: compute TDolap for incomplete pairs ---
     if not skip_TDolap_calc and DirA is not None:
@@ -661,12 +678,14 @@ def nac_calc(runDirs, checking_dict, nproc=None, is_gamma=False,
         parallel_tdolap_calc(DirA, DirB, checking_dict, nproc, is_alle,
                              bmin_s, bmax_s, omin, omax,
                              ikpt, ispin, icor,
-                             proj_name, cp2k_outfile)
+                             proj_name, cp2k_outfile,
+                             software, wavecar)
 
         if not skip_file_verification:
             print ("Checking Files Integrity")
             DirA,DirB,all_complete = task_checking(runDirs, omin, omax,
-                                                 ispin, ikpt, is_alle)
+                                                 ispin, ikpt, is_alle,
+                                                 wavecar)
 
     # --- Stage 3: NAC extraction (requires all TDolaps) ---
     ready = all_complete or skip_file_verification

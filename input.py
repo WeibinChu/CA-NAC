@@ -29,7 +29,10 @@ bmax_stored    = 200
 
 nproc   = 4         # Number of cores used in parallelization
 
-is_gamma_version  = False  # Which VASP version is used!!  
+software  = 'VASP'    # DFT backend: VASP | SIESTA | HAMNET | HAMGNNHUGE | ABACUS | CP2K
+wavecar   = 'WAVECAR' # Wavefunction file: WAVECAR | Sys.fullBZ.WFSX | '' | etc.
+
+is_gamma_version  = False  # Which VASP version is used!!
                            # vasp_std False  vasp_gam True
 is_reorder= False    # If turn on State Reordering  
                     # True (use with care) or False
@@ -68,8 +71,9 @@ checking_dict={'skip_file_verification':skip_file_verification,
                'onthefly_verification':onthefly_verification}
     
     
-nac_calc(Dirs, checking_dict, nproc, 
+nac_calc(Dirs, checking_dict, nproc,
          is_gamma_version, is_reorder, is_alle, is_real, is_combine,
          iformat, bmin, bmax,
          bmin_stored, bmax_stored, omin, omax,
-         ikpt, ispin, icor, potim )
+         ikpt, ispin, icor, potim,
+         software=software, wavecar=wavecar)
