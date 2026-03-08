@@ -572,14 +572,14 @@ def parallel_nac_calc(runDirs, nproc=None,
     
 
  
-    for w1 in runDirs:
-        res = pool.apply_async(nac_from_tdolap, (w1, omin, omax, 
-                                                 ispin, ikpt, 
-                                                 is_reorder, is_alle, 
+    for w1 in runDirs[:-1]:
+        res = pool.apply_async(nac_from_tdolap, (w1, omin, omax,
+                                                 ispin, ikpt,
+                                                 is_reorder, is_alle,
                                                  is_gamma))
         results.append(res)
 
-    for ii in range(len(runDirs)-1):
+    for ii in range(len(results)):
 
         et, pij, pji, cc1, cc2 ,perm1, perm2 = results[ii].get()
         
