@@ -14,7 +14,8 @@ def read_diffovlap(datastr):
     #nmax = int(data[0].split()[0])
     #print data
     grid_start_idx = data.index(" augmentation charges (non sperical)") + 1
-    diffovlap_data = np.array([ x for line in data[grid_start_idx:] \
+    diffovlap_data = np.array([ re.sub(r'(\d)[Dd]([+-])', r'\1E\2', x)
+                               for line in data[grid_start_idx:] \
                                for x in line.strip().split() if not \
                                    re.match(r'\ \w+', line) ], dtype=float)
     return diffovlap_data
